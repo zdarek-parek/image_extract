@@ -94,8 +94,8 @@ def language_formatting(lang):#for the database
     if lang == "rus": return "ru"
     if lang == "deu": return "de"
 
-file = r"app_EXIM/temp/1901_07_VOLNE_SMERY_V/2.png"
-boxes, p_h, p_w = getim.util(file, 'fra')
+# file = r"app_EXIM/temp/1901_07_VOLNE_SMERY_V/2.png"
+# boxes, p_h, p_w = getim.util(file, 'fra')
 
 
 # inf = r"C:\Users\dasha\Desktop\py_projects\app_EXIM\temp\1939_Minotaure_12_13"

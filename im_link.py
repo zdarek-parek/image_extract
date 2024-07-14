@@ -65,7 +65,7 @@ def read_api_url(api_url:str, json_name:str)->bool:
         binary_file.write(r)
     return response.ok
 
-def parse_json(name:str)->dict:
+def parse_json(name:str)->dict: #load+json in utility_func
     file = open(name, 'r', encoding='UTF8')
     content = json.loads(file.read())
     return content
