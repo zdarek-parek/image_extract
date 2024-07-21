@@ -59,11 +59,17 @@ class Window(tk.Frame):
 
     def continue_with_link(self, lang):
         link_entry, volume_start, issue_start = Link()
+        v_s = self.convert_str_to_int(volume_start.get())
+        i_s = self.convert_str_to_int(issue_start.get())
         link = link_entry.get()
         if link == "" or link == " ":
             messagebox.showerror("Error", "Invalid link")
+        elif v_s == -1 :
+            messagebox.showerror("Error", "Invalid volume start")
+        elif i_s == -1:
+            messagebox.showerror("Error", "Invalid issue start")
         else:
-            manager2.work_with_link(link, lang, volume_start, issue_start)
+            manager2.work_with_link(link, lang, v_s, i_s)
             self.open_save_win()
 
     def open_save_win(self):
@@ -73,6 +79,13 @@ class Window(tk.Frame):
 
     def close_window(self):
         self.master.destroy()
+
+    def convert_str_to_int(self, s:str):
+        if len(s) == 0: return 0
+        if s.isnumeric(): return int(s)-1
+
+        return -1 # error
+
 
 class SaveWindow(Window):
     def show_widgets(self):

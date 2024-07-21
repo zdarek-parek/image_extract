@@ -59,7 +59,7 @@ def work_with_batches(folder_with_batches):
             ib.util_with_batch(temp_path_b, res_path, batch_path, language)
     return
 
-def work_with_link(link, lang, volume_start:str, issue_start:str):
+def work_with_link(link, lang, volume_start:int, issue_start:int):
     il.utility(link, volume_start, issue_start)
     return
 

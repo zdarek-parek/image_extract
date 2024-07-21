@@ -52,12 +52,13 @@ def convert_to_iiif(url:str)->str:
     return iiif_url
 
 def read_api_url(api_url:str, json_name:str)->bool:
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
     time.sleep(1)
-    response = requests.get(api_url)
+    response = requests.get(api_url, headers = headers)
     tries = 5
     while (not response.ok and tries > 0):
         time.sleep(1)
-        response = requests.get(api_url)
+        response = requests.get(api_url, headers = headers)
         tries -= 1
 
     r = response.content
@@ -143,21 +144,22 @@ def work_with_monografy(content:dict, lang:str, out_dir:str):
             return
     return
 
-def work_with_periodical(content:dict, lang:str, out_dir:str, root_dir:str, volume_start:str, issue_start:str):
+def work_with_periodical(content:dict, lang:str, out_dir:str, root_dir:str, volume_start:int, issue_start:int):
     # print(lang)
     journal_name = content["label"]["none"][0]
     out_dir = os.path.join(out_dir, journal_name)
     out_dir = format_string(out_dir)
     create_dir(out_dir)
     items = content["items"]
-
-    start = int(volume_start)
-    for i in range(start, len(items)):
+    
+    if volume_start > len(items): volume_start = 0 #if the start is greayer than the number of items
+    
+    for i in range(volume_start, len(items)):
     # for item in items:
         work_with_year(items[i], journal_name, lang, out_dir, root_dir, issue_start)
     return
 
-def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root_dir:str, issue_start:str):
+def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root_dir:str, issue_start:int):
     uuid = year_item["id"]
     year = year_item["label"]["none"][0]
     year_json_name = os.path.join(root_dir, "year.json")
@@ -170,8 +172,9 @@ def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root
     create_dir(out_dir)
     items = content["items"]
 
-    start = int(issue_start)
-    for i in range(start, len(items)):
+    if issue_start > len(items): issue_start = 0 # if the start is greayer than the number of items
+    
+    for i in range(issue_start, len(items)):
     # for item in items:
         success = work_with_issue(items[i], journal_name, year, volume, lang, out_dir, root_dir)
         if not success:
@@ -211,8 +214,9 @@ def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lan
     return True
 
 def save_img(url:str, img_name:str):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
     time.sleep(1)
-    response = requests.get(url)
+    response = requests.get(url, headers=headers)
     if response.ok:
         with open(img_name, "wb") as f:
             f.write(response.content)
@@ -270,7 +274,7 @@ def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:lis
         # print("processed image", img_name)
     return success
 
-def work_with_journal(url:str, out_dir:str, root_dir:str, volume_start:str, issue_start:str):
+def work_with_journal(url:str, out_dir:str, root_dir:str, volume_start:int, issue_start:int):
     journal_json_file = os.path.join(root_dir, 'journal.json')
     response_ok = read_api_url(url, journal_json_file)
     if not response_ok: return
@@ -289,7 +293,7 @@ def delete_json_files(root_folder:str):
             os.remove(os.path.join(root_folder, file))
     return
 
-def utility(url:str, volume_start:str, issue_start:str):
+def utility(url:str, volume_start:int, issue_start:int):
     api_url = convert_to_iiif(url)
     if api_url == None:
         print("invalid url:", url)
