@@ -4,6 +4,7 @@ import pdf2png
 import im_cap
 import img_bal as ib
 import im_link as il
+import im_link_fr as ilfr
 from unidecode import unidecode
 
 def work_with_pdf(pdf_address, metadata, language, input_path, output_path, dump_pdf):
@@ -60,7 +61,11 @@ def work_with_batches(folder_with_batches):
     return
 
 def work_with_link(link, lang, volume_start:int, issue_start:int):
-    il.utility(link, volume_start, issue_start)
+    french_link_label = "https://gallica.bnf.fr"
+    if link.startswith(french_link_label): # french link
+        ilfr.utility(link, volume_start, issue_start)
+    else:
+        il.utility(link, volume_start, issue_start) # czeck link
     return
 
 def utility(language):

@@ -3,6 +3,7 @@ import requests
 import time
 import json
 import unidecode
+import csv
 
 def create_dir(dir_name:str)->None:
     if not os.path.exists(dir_name):
@@ -56,3 +57,52 @@ def save_img(url:str, img_name:str):
         with open(img_name, "wb") as f:
             f.write(response.content)
     return response.ok
+
+
+def create_csv_writer(csvfile:str):
+    fieldnames = ['journal name', 'issue', 'volume', 'year',
+                    'page number', 'page index', 'image number', 
+                    'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
+                    'width_page', 'height_page', 'language', 
+                    'img address', 'author', 'publisher', 'publication date']
+    # csvfile = issue_dir_name+'_data.csv'
+    f = open(csvfile, 'w', encoding='UTF8', newline='')
+    writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
+    writer.writeheader()
+    return writer, f
+
+def language_formatting(lang:str)->str:
+    '''for the database'''
+    if lang == "ces": return "cs"
+    if lang == "fra": return "fr"
+    if lang == "rus": return "ru"
+    if lang == "deu": return "de"
+
+def delete_diacritics(s:str)->str:
+    return unidecode.unidecode(s)
+
+def create_entity(page_index, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang,
+                  img_addr, author, publisher, publication_date):
+    journal_name, year, volume, issue_number = metadata
+    caption = caption.replace(';', ' ')
+    return {"journal name": journal_name,
+            "issue":issue_number,
+            "volume":volume,
+            "year":year,
+            "page number": "",
+            "page index": page_index,
+            "image number": number,
+            "caption":caption,
+            "area in percentage":area_percentage,
+            "x1":coords[0],
+            "y1":coords[1],
+            "x2":coords[2],
+            "y2":coords[3],
+            "image": (f"{im_prefix}{page_index}_{number}.jpeg"),
+            "width_page":p_w, 
+            "height_page": p_h, 
+            "language":lang,
+            "img address":img_addr,
+            "author":author, 
+            "publisher":publisher,
+            "publication date":publication_date}
