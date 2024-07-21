@@ -7,6 +7,7 @@ import image_mining_big as getim
 import new_caption as cap
 import versions as vrs
 import time
+import utility_funcs as ut
 
 def find_lib(url:str)->str:
     divider = '/'
@@ -93,12 +94,12 @@ def extract_monografy_name(metadata:dict)->str:
             return m["value"]["none"][0]
     return None
 
-def format_string(name:str)->str:
-    format_str = unidecode(name)
-    bad_chars = [' ', '.', ',', ';']
-    for c in bad_chars:
-        format_str = format_str.replace(c, '_')
-    return format_str
+# def format_string(name:str)->str:
+#     format_str = unidecode(name)
+#     bad_chars = [' ', '.', ',', ';']
+#     for c in bad_chars:
+#         format_str = format_str.replace(c, '_')
+#     return format_str
 
 def create_dir(dir_name:str)->None:
     if not os.path.exists(dir_name):
@@ -130,12 +131,12 @@ def work_with_monografy(content:dict, lang:str, out_dir:str):
     monografy_name = extract_monografy_name(content["metadata"])
 
     monografy_out_dir = os.path.join(out_dir, monografy_name)
-    monografy_out_dir = format_string(monografy_out_dir)
+    monografy_out_dir = ut.format_string(monografy_out_dir)
     create_dir(monografy_out_dir)
 
     items = content["items"]
 
-    res_dir, csvfile_path = create_result_dirs_and_files(format_string(monografy_name))
+    res_dir, csvfile_path = create_result_dirs_and_files(ut.format_string(monografy_name))
     writer, file = create_csv_writer(csvfile_path)
     infos = [monografy_name, "", "", ""]
     for item in items:
@@ -148,7 +149,7 @@ def work_with_periodical(content:dict, lang:str, out_dir:str, root_dir:str, volu
     # print(lang)
     journal_name = content["label"]["none"][0]
     out_dir = os.path.join(out_dir, journal_name)
-    out_dir = format_string(out_dir)
+    out_dir = ut.format_string(out_dir)
     create_dir(out_dir)
     items = content["items"]
     
@@ -168,7 +169,7 @@ def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root
     content = parse_json(year_json_name)
     volume = extract_part_num(content["metadata"])
     out_dir = os.path.join(out_dir, year)
-    out_dir = format_string(out_dir)
+    out_dir = ut.format_string(out_dir)
     create_dir(out_dir)
     items = content["items"]
 
@@ -191,7 +192,7 @@ def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lan
     issue_number = extract_part_num(content["metadata"])
     
     issue_dir_name = "%s_%s_%s_%s" % (journal_name, year, volume, issue_number)#for the images
-    issue_dir_name = format_string(issue_dir_name)
+    issue_dir_name = ut.format_string(issue_dir_name)
     issue_res_dir = os.path.join(out_dir, issue_dir_name)
     create_dir(issue_res_dir)
     
@@ -266,7 +267,7 @@ def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:lis
     page_index = page_item["label"]["none"][0]
     img_url = page_item["items"][0]["items"][0]["body"]["id"]
 
-    img_name = os.path.splitext(os.path.basename(out_dir))[0] +"_"+ format_string(page_index)+".jpeg"
+    img_name = os.path.splitext(os.path.basename(out_dir))[0] +"_"+ ut.format_string(page_index)+".jpeg"
     img_path = os.path.join(out_dir, img_name)
     success = save_img(img_url, img_path)
     if success:

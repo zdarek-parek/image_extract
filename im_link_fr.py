@@ -12,7 +12,7 @@ def convert_url_to_img_url(url:str, root_dir:str)->str:
     '''
     This function downloads json file describing one page, 
     finds image link,
-    coverts it to a link whre the image is,
+    coverts it to a link where the image is,
     returns it.
     '''
     page_json_url = convert_to_json(url)
@@ -27,22 +27,41 @@ def convert_url_to_img_url(url:str, root_dir:str)->str:
     img_url = img_url+img_label
     return img_url
 
-def work_with_page(page_item:dict, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str):
+def create_img_name(journal_name:str, volume:str, issue:str)->str:
+    name = journal_name+"_"+volume+"_"+issue
+    name = ut.format_string(name)
+    return
+
+def process_image():
+    return
+
+def work_with_page(page_item:dict, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str, issue_temp_fol:str, res_dir:str, index:int):
     page_index = page_item['contenu']
+    if page_index == "NP": page_index = page_index+"_"+str(index)
     page_url = page_item['url']
-    page_url = convert_url_to_img_url(page_url, root_dir)
+    img_url = convert_url_to_img_url(page_url, root_dir)
+
+    img_name = create_img_name(info[0], year, issue_month) +"_"+ ut.format_string(page_index)+".jpeg"
+    img_path = os.path.join(issue_temp_fol, img_name)
+    success = ut.save_img(img_url, img_path)
+    if success:
+        process_image(img_path, lang, writer, info, page_index, res_dir)
+        # print("processed image", img_name)
+    return success
+
     return
 
 
-def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str):
+def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str, issue_temp_fol:str, res_dir:str):
     pages_json_url = convert_to_json(url)
     pages_json_file = os.path.join(root_dir, 'pages.json') 
-    # response_ok = ut.read_api_url(pages_json_url, pages_json_file)
-    # if not response_ok: return
+    response_ok = ut.read_api_url(pages_json_url, pages_json_file)
+    if not response_ok: return
     content = ut.load_json(pages_json_file)
     pages = content['fragment']['contenu']
-    for page in pages:
-        work_with_page(page, root_dir, info, journal_name, year, issue_month)
+    for i in range(len(pages)):
+    # for page in pages:
+        work_with_page(pages[i], root_dir, info, journal_name, year, issue_month, issue_temp_fol, res_dir, i)
     return
 
 '''
@@ -77,8 +96,8 @@ def work_with_issue_xml(xml_url:str, root_dir:str)->str:
     '''Extracts an url, which contains issue data from xml file'''
 
     issue_xml_file = os.path.join(root_dir, 'issue.xml')
-    # response_ok = ut.read_api_url(xml_url, issue_xml_file)
-    # if not response_ok: return
+    response_ok = ut.read_api_url(xml_url, issue_xml_file)
+    if not response_ok: return
     file = open(issue_xml_file,  encoding="utf8", mode='r')
     content = file.read()
     words = content.split(' ')
@@ -92,61 +111,69 @@ def work_with_issue_xml(xml_url:str, root_dir:str)->str:
     url = content_url.split("\"")[1] if len(content_url.split("\"")) > 2 else ""
     return url
 
-def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_month:str):
-    print("found an issue")
+def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_month:str, issue_temp_fol:str, res_dir:str):
     issue_url = issue['url']
-    # issue_url = work_with_issue_xml(issue_url, root_dir)
-    # issue_json_url = convert_to_json(issue_url)
+    issue_url = work_with_issue_xml(issue_url, root_dir)
+    issue_json_url = convert_to_json(issue_url)
     issue_json_file = os.path.join(root_dir, 'issue.json') 
-    # response_ok = ut.read_api_url(issue_json_url, issue_json_file)
-    # if not response_ok: return
+    response_ok = ut.read_api_url(issue_json_url, issue_json_file)
+    if not response_ok: return
+
     content = ut.load_json(issue_json_file)
     info = content['InformationsModel']
     info = extract_metadata(info)
     pages_url = content['PageAViewerFragment']['contenu']['PaginationViewerModel']['url']
-    work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month)
+
+    work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, issue_temp_fol, res_dir)
     return
 
-def work_with_month(month:dict, root_dir:str, journal_name:str, year:str):
+def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_fol:str, res_dir:str):
     issue_month = month['parameters']['nom']
     content_rows = month['contenu']
-    print(len(content_rows))
+    
     for row in content_rows:
         content_row = row['contenu']
-        print(len(content_row))
+
         for cr in content_row:
             if cr['active']:
-                work_with_issue(cr, root_dir, journal_name, year, issue_month)
+                issue_temp_fol = os.path.join(temp_fol, ut.format_str(issue_month))
+                # issue_res_fol = os.path.join(res_dir, ut.format_str(issue_month))
+                ut.create_dir(issue_temp_fol)
+                # ut.create_dir(issue_res_fol)
+
+                work_with_issue(cr, root_dir, journal_name, year, issue_month, issue_temp_fol, res_dir)
 
     return
 
-def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, res_fol:str):
+def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, res_dir:str):
     year = volume['description']
 
-    year_temp_fol = os.path.join(temp_fol, ut.make_str_pretty(year))
-    year_res_fol = os.path.join(res_fol, ut.make_str_pretty(year))
+    year_temp_fol = os.path.join(temp_fol, ut.format_str(year))
+    # year_res_fol = os.path.join(res_fol, ut.format_str(year))
     ut.create_dir(year_temp_fol)
-    ut.create_dir(year_res_fol)
+    # ut.create_dir(year_res_fol)
+
     volume_url = volume['url']
     volume_json_url = convert_to_json(volume_url)
     volume_json_file = os.path.join(root_dir, 'volume.json') 
-    # response_ok = ut.read_api_url(volume_json_url, volume_json_file)
-    # if not response_ok: return
+    response_ok = ut.read_api_url(volume_json_url, volume_json_file)
+    if not response_ok: return
+
     content = ut.load_json(volume_json_file)
     monthes = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']['contenu']['CalendarGrid']['contenu']
     for m in monthes:
-        work_with_month(m, root_dir, journal_name, year)
+        work_with_month(m, root_dir, journal_name, year, year_temp_fol, res_dir)
     return
 
 
-def work_with_volumes(volumes:dict, root_dir:str,  journal_name:str, temp_fol:str, res_fol:str):
+def work_with_volumes(volumes:dict, root_dir:str,  journal_name:str, temp_fol:str, res_dir:str):
     rows_of_volumes = volumes['contenu']['CalendarGrid']['contenu'] #list of rows
     # c = 0
     for row in rows_of_volumes:
         row_content = row['contenu']
         for rc in row_content:
             if len(rc['url'])>0:
-                work_with_volume(rc, root_dir, journal_name, temp_fol, res_fol)
+                work_with_volume(rc, root_dir, journal_name, temp_fol, res_dir)
                 # c+=1
 
     # print(c)
@@ -154,19 +181,18 @@ def work_with_volumes(volumes:dict, root_dir:str,  journal_name:str, temp_fol:st
  
 def work_with_journal(url:str, root_dir:str, res_dir:str):
     journal_json_file = os.path.join(root_dir, 'journal.json')
-    # response_ok = ut.read_api_url(url, journal_json_file)
-    # if not response_ok: return
+    response_ok = ut.read_api_url(url, journal_json_file)
+    if not response_ok: return
     content = ut.load_json(journal_json_file)
     
     journal_name = content['PeriodicalPageFragment']['contenu']['PageModel']['parameters']['title']
-    metadata = [journal_name]
     volumes = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']
 
-    journal_folder_temp = os.path.join(root_dir, ut.make_str_pretty(journal_name))
-    journal_folder_res = os.path.join(res_dir, ut.make_str_pretty(journal_name))
+    journal_folder_temp = os.path.join(root_dir, ut.format_str(journal_name))
+    # journal_folder_res = os.path.join(res_dir, ut.format_str(journal_name))
     ut.create_dir(journal_folder_temp)
-    ut.create_dir(journal_folder_res)
-    work_with_volumes(volumes, root_dir, journal_name, journal_folder_temp, journal_folder_res)
+    # ut.create_dir(journal_folder_res)
+    work_with_volumes(volumes, root_dir, journal_name, journal_folder_temp, res_dir)
     return
 
 def utility(url:str)->None:
