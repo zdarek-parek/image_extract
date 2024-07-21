@@ -39,7 +39,8 @@ def util_without_pagenum(input_folder, output_folder, page_count, lang_op, pdf_n
     fieldnames = ['journal name', 'issue', 'volume', 'year',
               'page number', 'page index', 'image number', 
               'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
-              'width_page', 'height_page', 'language']
+              'width_page', 'height_page', 'language', 
+              'img address', 'author', 'publisher', 'publication date']
     csvfile = output_dir+'_data.csv'
     with open(csvfile, 'w', encoding='UTF8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
@@ -53,7 +54,9 @@ def util_without_pagenum(input_folder, output_folder, page_count, lang_op, pdf_n
                 percentages = vrs.get_versions(page_num, image_name_prefix, file, boxes, output_dir, degrees_to_rotate)
                 for j in range(len(boxes)):
                     entity = create_entity(page_num, j+1, captions[j], percentages[j], boxes[j], metadata, 
-                                           image_name_prefix, p_w, p_h, language_formatting(lang_op))
+                                           image_name_prefix, p_w, p_h, language_formatting(lang_op),
+                                           "", "", "", "")
+                    # the last four 'img address', 'author', 'publisher', 'publication date'
                     writer.writerow(entity)
         f.flush()
 
@@ -66,7 +69,8 @@ def create_folder(folder_name, location):
     else:
         return new_dir
 
-def create_entity(page_num, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang):
+def create_entity(page_num, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang, 
+                  img_addr, author, publisher, publication_date):
     parsed_meta = parse_metadata(metadata)
     parsed_meta[0] = parsed_meta[0].replace(';', '_') 
     caption = caption.replace(';', ' ')
@@ -86,7 +90,12 @@ def create_entity(page_num, number, caption, area_percentage, coords, metadata, 
             "image": (f"{im_prefix}{page_num}_{number}.jpeg"),
             "width_page":p_w, 
             "height_page": p_h, 
-            "language":lang}
+            "language":lang,
+            "img address":img_addr,
+            "author":author, 
+            "publisher":publisher,
+            "publication date":publication_date
+            }
 
 def language_formatting(lang):#for the database
     if lang == "ces": return "cs"

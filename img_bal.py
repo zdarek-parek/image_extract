@@ -144,7 +144,8 @@ def create_folder(folder_name, location):
     else:
         return new_dir
 
-def create_entity(page_num, page_index, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang):
+def create_entity(page_num, page_index, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang,
+                  img_addr, author, publisher, publication_date):
     parsed_meta = [metadata[0], metadata[4], metadata[2], metadata[3]]
     parsed_meta[0] = parsed_meta[0].replace(';', '_') 
     caption = caption.replace(';', ' ')
@@ -164,7 +165,11 @@ def create_entity(page_num, page_index, number, caption, area_percentage, coords
             "image": (f"{im_prefix}{page_num}_{number}.jpeg"),
             "width_page":p_w, 
             "height_page": p_h, 
-            "language":lang}
+            "language":lang,
+            "img address":img_addr,
+            "author":author, 
+            "publisher":publisher,
+            "publication date":publication_date}
 
 def language_formatting(lang):#for the database
     if lang == "ces": return "cs"
@@ -182,7 +187,8 @@ def process_data(bfolder:str, metadata:list, output_folder:str, lang_op:str, img
     fieldnames = ['journal name', 'issue', 'volume', 'year',
               'page number', 'page index', 'image number', 
               'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
-              'width_page', 'height_page', 'language']
+              'width_page', 'height_page', 'language', 
+              'img address', 'author', 'publisher', 'publication date']
     csvfile = output_dir+'_data.csv'
     with open(csvfile, 'w', encoding='UTF8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
@@ -201,7 +207,9 @@ def process_data(bfolder:str, metadata:list, output_folder:str, lang_op:str, img
                 percentages = vrs.get_versions(pnum, image_name_prefix, file, boxes, output_dir, degrees_to_rotate)
                 for j in range(len(boxes)):
                     entity = create_entity(pnum, pind, j+1, captions[j], percentages[j], boxes[j], metadata,
-                                           image_name_prefix, p_w, p_h, language_formatting(lang_op))
+                                           image_name_prefix, p_w, p_h, language_formatting(lang_op), 
+                                           "", "", "", "")
+                    # the last four 'img address', 'author', 'publisher', 'publication date'
                     writer.writerow(entity)
         f.flush()
 
