@@ -38,11 +38,21 @@ def load_json(name:str)->dict:
     return content
 
 
-def make_str_pretty(s:str):
+def format_string(s:str):
     '''Gets rid of diacriticts and punctution.'''
-    s = unidecode.unidecode(s)
-    to_replace = [' ', ';', ',', '\'']
-    for p in to_replace:
-        s = s.replace(p, ' ')
 
-    return s
+    format_str = unidecode.unidecode(s)
+    bad_chars = [' ', '.', ',', ';', '\'']
+    for c in bad_chars:
+        format_str = format_str.replace(c, '_')
+    return format_str
+
+
+def save_img(url:str, img_name:str):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
+    time.sleep(1)
+    response = requests.get(url, headers=headers)
+    if response.ok:
+        with open(img_name, "wb") as f:
+            f.write(response.content)
+    return response.ok
