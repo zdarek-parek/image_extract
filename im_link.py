@@ -143,18 +143,21 @@ def work_with_monografy(content:dict, lang:str, out_dir:str):
             return
     return
 
-def work_with_periodical(content:dict, lang:str, out_dir:str, root_dir:str):
+def work_with_periodical(content:dict, lang:str, out_dir:str, root_dir:str, volume_start:str, issue_start:str):
     # print(lang)
     journal_name = content["label"]["none"][0]
     out_dir = os.path.join(out_dir, journal_name)
     out_dir = format_string(out_dir)
     create_dir(out_dir)
     items = content["items"]
-    for item in items:
-        work_with_year(item, journal_name, lang, out_dir, root_dir)
+
+    start = int(volume_start)
+    for i in range(start, len(items)):
+    # for item in items:
+        work_with_year(items[i], journal_name, lang, out_dir, root_dir, issue_start)
     return
 
-def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root_dir:str):
+def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root_dir:str, issue_start:str):
     uuid = year_item["id"]
     year = year_item["label"]["none"][0]
     year_json_name = os.path.join(root_dir, "year.json")
@@ -166,8 +169,11 @@ def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root
     out_dir = format_string(out_dir)
     create_dir(out_dir)
     items = content["items"]
-    for item in items:
-        success = work_with_issue(item, journal_name, year, volume, lang, out_dir, root_dir)
+
+    start = int(issue_start)
+    for i in range(start, len(items)):
+    # for item in items:
+        success = work_with_issue(items[i], journal_name, year, volume, lang, out_dir, root_dir)
         if not success:
             os.rmdir(out_dir)
             return False
@@ -264,7 +270,7 @@ def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:lis
         # print("processed image", img_name)
     return success
 
-def work_with_journal(url:str, out_dir:str, root_dir:str):
+def work_with_journal(url:str, out_dir:str, root_dir:str, volume_start:str, issue_start:str):
     journal_json_file = os.path.join(root_dir, 'journal.json')
     response_ok = read_api_url(url, journal_json_file)
     if not response_ok: return
@@ -273,7 +279,7 @@ def work_with_journal(url:str, out_dir:str, root_dir:str):
     if metadata["doctype"] == "Monografie":
         work_with_monografy(content, metadata["lang"], out_dir)
     if metadata["doctype"] == "Periodikum":
-        work_with_periodical(content, metadata["lang"], out_dir, root_dir)
+        work_with_periodical(content, metadata["lang"], out_dir, root_dir, volume_start, issue_start)
     return
 
 def delete_json_files(root_folder:str):
@@ -283,7 +289,7 @@ def delete_json_files(root_folder:str):
             os.remove(os.path.join(root_folder, file))
     return
 
-def utility(url:str):
+def utility(url:str, volume_start:str, issue_start:str):
     api_url = convert_to_iiif(url)
     if api_url == None:
         print("invalid url:", url)
@@ -292,6 +298,6 @@ def utility(url:str):
     create_dir(out_dir)
     result_out_dir = 'result'
     create_dir(result_out_dir)
-    work_with_journal(api_url, out_dir, out_dir)
+    work_with_journal(api_url, out_dir, out_dir, volume_start, issue_start)
     delete_json_files(out_dir)
     return

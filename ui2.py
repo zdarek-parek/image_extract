@@ -58,12 +58,12 @@ class Window(tk.Frame):
         self.continue_with_link(language.get())
 
     def continue_with_link(self, lang):
-        link_entry = Link()
+        link_entry, volume_start, issue_start = Link()
         link = link_entry.get()
         if link == "" or link == " ":
             messagebox.showerror("Error", "Invalid link")
         else:
-            manager2.work_with_link(link, lang)
+            manager2.work_with_link(link, lang, volume_start, issue_start)
             self.open_save_win()
 
     def open_save_win(self):
@@ -106,6 +106,7 @@ def Language():
     languageWindow.wait_window()
     return var
 
+'''
 def JournalMetadata(dir_name):
     metadataWindow = tk.Toplevel()
     metadataWindow.grab_set()
@@ -130,6 +131,8 @@ def JournalMetadata(dir_name):
     metadataWindow.wait_window()
     # print("finished waiting...")
     return (names, metadata)
+'''
+
 
 def JournalMetadataScrollBar(dir_name):
     metadataWindow = tk.Toplevel()
@@ -177,12 +180,22 @@ def Link():
     evar = tk.StringVar()
     note = tk.Entry(linkWindow, width=150, 
                     textvariable=evar).grid(row=6,padx=5,pady=5)
+    
+    tk.Label(linkWindow, text ="Enter volume start").grid(row=7, padx=5,pady=5)
+    volume_start = tk.StringVar()
+    note1 = tk.Entry(linkWindow, width=20, 
+                    textvariable=volume_start).grid(row=8,padx=5,pady=5)
+    
+    tk.Label(linkWindow, text ="Enter issue start").grid(row=9, padx=5,pady=5)
+    issue_start = tk.StringVar()
+    note2 = tk.Entry(linkWindow, width=20, 
+                    textvariable=issue_start).grid(row=10,padx=5,pady=5)
 
     Button = tk.Button(linkWindow, text ="OK",
-                       command = linkWindow.destroy).grid(row=7)
+                       command = linkWindow.destroy).grid(row=11)
 
     linkWindow.wait_window()
-    return evar
+    return evar, volume_start, issue_start
 
 def is_pdf(file_name):
     if file_name.endswith('.pdf'):
