@@ -187,17 +187,28 @@ def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_f
         for cr in content_row:
             if cr['active']:
                 if processed_items_counter >= issue_start: # ability to tell the program where to start
-                    issue_temp_fol = os.path.join(temp_fol, ut.format_string(issue_month))
+                    # issue_temp_fol = os.path.join(temp_fol, ut.format_string(issue_month))
                     # issue_res_fol = os.path.join(res_dir, ut.format_str(issue_month))
-                    ut.create_dir(issue_temp_fol)
+                    # ut.create_dir(issue_temp_fol)
                     # ut.create_dir(issue_res_fol)
 
-                    success = work_with_issue(cr, root_dir, journal_name, year, issue_month, issue_temp_fol)
+                    success = work_with_issue(cr, root_dir, journal_name, year, issue_month, temp_fol)
                     if not success:
-                        os.rmdir(issue_temp_fol)
+                        os.rmdir(temp_fol)
                         return False
 
     return True
+
+def work_with_one_month_issue(issue:dict, root_dir:str, journal_name:str, year:str, year_temp_fol:str)->str:
+    issue_month = issue['PageAViewerFragment']['contenu']['IssuePaginationFragment']['currentPage']['contenu']
+    # issue_temp_fol = os.path.join(year_temp_fol, ut.format_string(issue_month))
+    # ut.create_dir(issue_temp_fol)
+    info = issue['InformationsModel']
+    info = extract_metadata(info)
+    pages_url = issue['PageAViewerFragment']['contenu']['PaginationViewerModel']['url']
+
+    success = work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, year_temp_fol)
+    return success
 
 def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, issue_start:int):
     year = volume['description']
@@ -214,9 +225,13 @@ def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, 
     if not response_ok: return
 
     content = ut.load_json(volume_json_file)
-    monthes = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']['contenu']['CalendarGrid']['contenu']
-    for m in monthes:
-        success = work_with_month(m, root_dir, journal_name, year, year_temp_fol, issue_start)
+    if 'PeriodicalPageFragment' in content.keys():
+        monthes = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']['contenu']['CalendarGrid']['contenu']
+        for m in monthes:
+            success = work_with_month(m, root_dir, journal_name, year, year_temp_fol, issue_start)
+    elif 'PageAViewerFragment' in content.keys():
+        success = work_with_one_month_issue(content, root_dir, journal_name, year, year_temp_fol,)
+
     return
 
 
@@ -265,5 +280,7 @@ def utility(url:str, volume_start:int, issue_start:str)->None:
     return
 
 
-# url = "https://gallica.bnf.fr/ark:/12148/cb32857192h/date.r=revue+de+l%27art+ancien+et+moderne.langFR"
-# utility(url, 0, 0)
+url = "https://gallica.bnf.fr/ark:/12148/cb34446843c/date.r="
+utility(url, 0, 0)
+
+# TODO: fix month - make it an issue, year format yyyy-mm-dd-yyyy-mm-dd everywhere except for pdf, ocr

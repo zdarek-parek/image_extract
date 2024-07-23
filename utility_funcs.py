@@ -43,7 +43,7 @@ def format_string(s:str):
     '''Gets rid of diacriticts and punctution.'''
 
     format_str = unidecode.unidecode(s)
-    bad_chars = [' ', '.', ',', ';', '\'']
+    bad_chars = [' ', '.', ',', ';', '\'', '-', ':']
     for c in bad_chars:
         format_str = format_str.replace(c, '_')
     return format_str
@@ -106,3 +106,6 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "author":author, 
             "publisher":publisher,
             "publication date":publication_date}
+
+# janvier, février, mars, avril, mai, juin, 
+# juillet, août, septembre, octobre, novembre, décembre
