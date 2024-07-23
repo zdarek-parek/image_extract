@@ -265,5 +265,5 @@ def utility(url:str, volume_start:int, issue_start:str)->None:
     return
 
 
-url = "https://gallica.bnf.fr/ark:/12148/cb32857192h/date.r=revue+de+l%27art+ancien+et+moderne.langFR"
-utility(url, 0, 0)
+# url = "https://gallica.bnf.fr/ark:/12148/cb32857192h/date.r=revue+de+l%27art+ancien+et+moderne.langFR"
+# utility(url, 0, 0)

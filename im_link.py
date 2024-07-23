@@ -158,6 +158,8 @@ def work_with_periodical(content:dict, lang:str, out_dir:str, root_dir:str, volu
     for i in range(volume_start, len(items)):
     # for item in items:
         work_with_year(items[i], journal_name, lang, out_dir, root_dir, issue_start)
+        issue_start = 0
+        # volume_start = 0
     return
 
 def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root_dir:str, issue_start:int):
