@@ -4,9 +4,11 @@ import numpy as np
 import cv2
 
 def highlight_bbox(img:np.ndarray, bbox:list[int])->np.ndarray:
-    ery = (2546-img.shape[0])//2
-    erx = (1881 - img.shape[1])//2
-    cv2.rectangle(img, (bbox[0]+erx, bbox[1]+ery), (bbox[0]+erx+bbox[2], bbox[1]+ery+bbox[3]), (0, 0, 255), 2)
+    ery = img.shape[0]
+    erx = img.shape[1]
+    cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 0), 2)
+    # cv2.imshow('bbox', img)
+    # cv2.waitKey()
     return img
 
 def highlight_bboxes(img:np.ndarray, ocr_file_name:str):
@@ -27,7 +29,7 @@ def highlight_bboxes(img:np.ndarray, ocr_file_name:str):
                                 ats = g4c.attrib
                                 im = highlight_bbox(im, [int(ats["HPOS"]), int(ats["VPOS"]), int(ats["WIDTH"]), int(ats["HEIGHT"]) ])
 
-    cv2.imwrite("bboxes.jpeg", im)
+    cv2.imwrite("bboxes_fr.jpeg", im)
     
     return
 
@@ -43,7 +45,7 @@ def download_alto_file(url:str)->str:
     response = requests.get(url)
     r = response.content
     print(response.ok)
-    alto_file_name = "alto_cz2.xml"
+    alto_file_name = "alto_fr.xml"
     with open(alto_file_name, "wb") as binary_file:
         binary_file.write(r)
     return alto_file_name
@@ -96,9 +98,11 @@ def util(img_bbox:list[int], img_url:str):
 
 # url = "https://api.kramerius.mzk.cz/search/api/client/v7.0/items/uuid:34f1d3f5-935d-11e0-bdd7-0050569d679d/ocr/alto"
 # url_fr = "https://gallica.bnf.fr/RequestDigitalElement?O=bpt6k5401509q&E=ALTO&Deb=10"
+# url = "https://gallica.bnf.fr/RequestDigitalElement?O=bpt6k9740716w&E=ALTO&Deb=17"
+
 # download_alto_file(url)
 # alto_f_name = 'alto_cz.xml'
 # alto_parser(alto_f_name)
 
-img = r"C:\Users\dasha\Desktop\py_projects\cz2.jpeg"
-highlight_bboxes(img, "alto_cz2.xml")
+img = r"C:\Users\dasha\Desktop\py_projects\native.jpg"
+highlight_bboxes(img, "alto_fr.xml")
