@@ -79,7 +79,7 @@ def convert_month_to_issue_number(pub_date:str)->str:
 
 def process_image(img_path:str, img_url:str, lang:str, writer:csv.DictWriter, info:list[str], page_index:str, res_dir:str):
     journal_name, author, publisher, publication_date, l, issue_number, year = info
-    year = format_publication_date(publication_date) # database format
+    publication_date = format_publication_date(publication_date) # database format
     image_name_prefix = "%s_%s_%s_" % (journal_name, publication_date, issue_number)
     image_name_prefix = ut.format_string(image_name_prefix)
     lang = language_formatting_for_text_detection(lang)
