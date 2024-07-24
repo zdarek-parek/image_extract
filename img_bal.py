@@ -152,7 +152,7 @@ def create_entity(page_num, page_index, number, caption, area_percentage, coords
     return {"journal name": parsed_meta[0],
             "issue":parsed_meta[1],
             "volume":parsed_meta[2],
-            "year":parsed_meta[3],
+            "publication date":parsed_meta[3],
             "page number": page_num,
             "page index": page_index,
             "image number": number,
@@ -168,8 +168,7 @@ def create_entity(page_num, page_index, number, caption, area_percentage, coords
             "language":lang,
             "img address":img_addr,
             "author":author, 
-            "publisher":publisher,
-            "publication date":publication_date}
+            "publisher":publisher}
 
 def language_formatting(lang):#for the database
     if lang == "ces": return "cs"
@@ -184,11 +183,11 @@ def process_data(bfolder:str, metadata:list, output_folder:str, lang_op:str, img
 
     journal_info = os.path.splitext(os.path.basename(bfolder))[0]#batch name
     output_dir = create_folder(journal_info, output_folder)
-    fieldnames = ['journal name', 'issue', 'volume', 'year',
+    fieldnames = ['journal name', 'issue', 'volume', 'publication date',
               'page number', 'page index', 'image number', 
               'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
               'width_page', 'height_page', 'language', 
-              'img address', 'author', 'publisher', 'publication date']
+              'img address', 'author', 'publisher']
     csvfile = output_dir+'_data.csv'
     with open(csvfile, 'w', encoding='UTF8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
@@ -209,7 +208,7 @@ def process_data(bfolder:str, metadata:list, output_folder:str, lang_op:str, img
                     entity = create_entity(pnum, pind, j+1, captions[j], percentages[j], boxes[j], metadata,
                                            image_name_prefix, p_w, p_h, language_formatting(lang_op), 
                                            "", "", "", "")
-                    # the last four 'img address', 'author', 'publisher', 'publication date'
+                    # the last four 'img address', 'author', 'publisher',
                     writer.writerow(entity)
         f.flush()
 

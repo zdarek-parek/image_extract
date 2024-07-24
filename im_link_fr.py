@@ -40,12 +40,50 @@ def language_formatting_for_text_detection(lang:str)->str: #TODO: find more lang
     if lang == "français":return "fra"
     return "fra" # default, if it is not possible to recognize language in json file
 
+def convert_month_to_number(month:str)->str:
+    month = ut.delete_diacritics(month.lower())
+    months = {'janvier':1, 'fevrier':2, 'mars':3, 
+              'avril':4, 'mai':5, 'juin':6, 
+              'juillet':7, 'aout':8, 'septembre':9, 
+              'octobre':10, 'novembre':11, 'decembre':12}
+
+    return months[month]
+
+def format_publication_date(date:str)->str:
+    '''Converts publication date 1 avril 1900 to database format 1900-04-01-1900-12-31'''
+    split_date = date.split(' ')
+    pub_date = ""
+    if len(split_date) == 3: #day, month, year
+        day = split_date[0]
+        month = convert_month_to_number(split_date[1])
+        year = split_date[2]
+        pub_date = "%s-%s-%s-%s-%s-%s" % (year, month, day, year, month, day)
+    elif len(split_date) == 2:
+        month = convert_month_to_number(split_date[0])
+        year = split_date[1]
+        pub_date = "%s-%s-%s-%s-%s-%s" % (year, month, "01", year, month, "31")
+    elif len(split_date) == 1:
+        year = split_date[0]
+        pub_date = "%s-%s-%s-%s-%s-%s" % (year, "01", "01", year, "12", "31")
+    return pub_date
+
+def convert_month_to_issue_number(pub_date:str)->str:
+    '''Extracts issue number as a month from 01 juillet 1909 ->  7'''
+    split_date = pub_date.split(' ')
+    issue = ""
+    if len(split_date) == 3:
+        issue = convert_month_to_number(split_date[1])
+    elif len(split_date) == 2:
+        issue = convert_month_to_number(split_date[0])
+    return issue
+
 def process_image(img_path:str, img_url:str, lang:str, writer:csv.DictWriter, info:list[str], page_index:str, res_dir:str):
     journal_name, author, publisher, publication_date, l, issue_number, year = info
-    image_name_prefix = "%s_%s_%s_" % (journal_name, year, issue_number)
+    year = format_publication_date(publication_date) # database format
+    image_name_prefix = "%s_%s_%s_" % (journal_name, publication_date, issue_number)
     image_name_prefix = ut.format_string(image_name_prefix)
     lang = language_formatting_for_text_detection(lang)
-    infos = [journal_name, year, "", issue_number]
+    infos = [journal_name, publication_date, "", issue_number]
 
     boxes, p_h, p_w = getim.util(img_path, lang)
     if len(boxes) > 0: #page contains images
@@ -54,7 +92,7 @@ def process_image(img_path:str, img_url:str, lang:str, writer:csv.DictWriter, in
         for j in range(len(boxes)):
             entity = ut.create_entity(page_index, j+1, captions[j], percentages[j], boxes[j], infos, 
                                     image_name_prefix, p_w, p_h, ut.language_formatting(lang), 
-                                    img_url, author, publisher, publication_date)
+                                    img_url, author, publisher)
             # three last are 'author', 'publisher', 'publication date'
             writer.writerow(entity)
     return
@@ -177,7 +215,7 @@ def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_
     return success
 
 def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_fol:str, issue_start:str):
-    issue_month = month['parameters']['nom']
+    issue_month = convert_month_to_number(month['parameters']['nom'])
     content_rows = month['contenu']
     
     processed_items_counter =0
@@ -201,6 +239,7 @@ def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_f
 
 def work_with_one_month_issue(issue:dict, root_dir:str, journal_name:str, year:str, year_temp_fol:str)->str:
     issue_month = issue['PageAViewerFragment']['contenu']['IssuePaginationFragment']['currentPage']['contenu']
+    issue_month = convert_month_to_issue_number(issue_month)
     # issue_temp_fol = os.path.join(year_temp_fol, ut.format_string(issue_month))
     # ut.create_dir(issue_temp_fol)
     info = issue['InformationsModel']
@@ -280,7 +319,7 @@ def utility(url:str, volume_start:int, issue_start:str)->None:
     return
 
 
-url = "https://gallica.bnf.fr/ark:/12148/cb34446843c/date.r="
-utility(url, 0, 0)
+# url = "https://gallica.bnf.fr/ark:/12148/cb34446843c/date.r="
+# utility(url, 0, 0)
 
-# TODO: fix month - make it an issue, year format yyyy-mm-dd-yyyy-mm-dd everywhere except for pdf, ocr
+# TODO: fix month - make it an issue, year format yyyy-mm-dd-yyyy-mm-dd everywhere except for pdf, ocr, error monthes

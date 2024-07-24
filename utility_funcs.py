@@ -60,11 +60,11 @@ def save_img(url:str, img_name:str):
 
 
 def create_csv_writer(csvfile:str):
-    fieldnames = ['journal name', 'issue', 'volume', 'year',
+    fieldnames = ['journal name', 'issue', 'volume', 'publication date',
                     'page number', 'page index', 'image number', 
                     'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
                     'width_page', 'height_page', 'language', 
-                    'img address', 'author', 'publisher', 'publication date']
+                    'img address', 'author', 'publisher']
     # csvfile = issue_dir_name+'_data.csv'
     f = open(csvfile, 'w', encoding='UTF8', newline='')
     writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
@@ -82,13 +82,13 @@ def delete_diacritics(s:str)->str:
     return unidecode.unidecode(s)
 
 def create_entity(page_index, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang,
-                  img_addr, author, publisher, publication_date):
-    journal_name, year, volume, issue_number = metadata
+                  img_addr, author, publisher):
+    journal_name, publication_date, volume, issue_number = metadata
     caption = caption.replace(';', ' ')
     return {"journal name": journal_name,
             "issue":issue_number,
             "volume":volume,
-            "year":year,
+            "publication date":publication_date,
             "page number": "",
             "page index": page_index,
             "image number": number,
@@ -104,8 +104,5 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "language":lang,
             "img address":img_addr,
             "author":author, 
-            "publisher":publisher,
-            "publication date":publication_date}
+            "publisher":publisher}
 
-# janvier, février, mars, avril, mai, juin, 
-# juillet, août, septembre, octobre, novembre, décembre

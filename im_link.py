@@ -94,28 +94,11 @@ def extract_monografy_name(metadata:dict)->str:
             return m["value"]["none"][0]
     return None
 
-# def format_string(name:str)->str:
-#     format_str = unidecode(name)
-#     bad_chars = [' ', '.', ',', ';']
-#     for c in bad_chars:
-#         format_str = format_str.replace(c, '_')
-#     return format_str
 
 def create_dir(dir_name:str)->None:
     if not os.path.exists(dir_name):
         os.mkdir(dir_name)
     return
-
-# def create_csv_writer(csvfile:str):
-#     fieldnames = ['journal name', 'issue', 'volume', 'year',
-#                     'page number', 'page index', 'image number', 
-#                     'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
-#                     'width_page', 'height_page', 'language']
-#     # csvfile = issue_dir_name+'_data.csv'
-#     f = open(csvfile, 'w', encoding='UTF8', newline='')
-#     writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
-#     writer.writeheader()
-#     return writer, f
 
 def create_result_dirs_and_files(issue_dir_name:str):
     result_root = "result"
@@ -185,6 +168,42 @@ def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root
             return False
     return True
 
+def find_publication_date(metadata:dict)->str:
+    for item in metadata:
+        if item['label']['cz'][0] == "Vydáno":
+            return item['value']['none'][0]
+    return ""
+def formta_publication_date(date:str)->str:
+    publication_date = ""
+    if len(date) == 0: return publication_date
+    time_span = date.split('-')
+    if len(time_span) == 1: # single date, not a span
+        single_date = time_span.split('.')
+        if len(single_date) == 1: # just year
+            year = single_date[0]
+            publication_date = "%s-%s-%s-%s-%s-%s" % (year, "01", "01", year, "12", "31")
+        elif len(single_date) == 2:
+            month = single_date[0]
+            year = single_date[1]
+            publication_date = "%s-%s-%s-%s-%s-%s" % (year, month, "01", year, month, "31")
+        elif len(single_date) == 3:
+            day = single_date[0]
+            month = single_date[1]
+            year = single_date[2]
+            publication_date = "%s-%s-%s-%s-%s-%s" % (year, month, day, year, month, day)
+    elif len(time_span) == 2: # it is a time span, at this point it can process only 08.-09.1904
+        first_month = time_span[0]
+        second_month_year = time_span[1]
+        single_date1 = first_month.split('.')
+        single_date2 = second_month_year.split('.')
+        if len(single_date2) == 2 and len(single_date1) == 2:
+           month1 = single_date1[0]
+           month2 = single_date2[0]
+           year = single_date2[1]
+           publication_date = "%s-%s-%s-%s-%s-%s" % (year, month1, "01", year, month2, "31")
+
+    return publication_date
+
 def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lang:str, out_dir:str, root_dir:str):
     uuid = issue_item["id"]
     issue_json_name = os.path.join(root_dir, "issue.json")
@@ -192,6 +211,8 @@ def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lan
     if not response_ok: return True
     content = parse_json(issue_json_name)
     issue_number = extract_part_num(content["metadata"])
+    publication_date = find_publication_date(content["metadata"])
+    publication_date = formta_publication_date(publication_date)
     
     issue_dir_name = "%s_%s_%s_%s" % (journal_name, year, volume, issue_number)#for the images
     issue_dir_name = ut.format_string(issue_dir_name)
@@ -202,7 +223,7 @@ def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lan
 
     res_dir, csvfile_path = create_result_dirs_and_files(issue_dir_name)
     writer, file = ut.create_csv_writer(csvfile_path)
-    infos = [journal_name, year, volume, issue_number]
+    infos = [journal_name, publication_date, volume, issue_number]
 
     for item in items:
         success = work_with_page(item, issue_res_dir, writer, infos, res_dir, lang)
@@ -225,42 +246,10 @@ def save_img(url:str, img_name:str):
             f.write(response.content)
     return response.ok
 
-# def create_entity(page_index, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang,
-#                   img_addr, author, publisher, publication_date):
-#     journal_name, year, volume, issue_number = metadata
-#     caption = caption.replace(';', ' ')
-#     return {"journal name": journal_name,
-#             "issue":issue_number,
-#             "volume":volume,
-#             "year":year,
-#             "page number": "",
-#             "page index": page_index,
-#             "image number": number,
-#             "caption":caption,
-#             "area in percentage":area_percentage,
-#             "x1":coords[0],
-#             "y1":coords[1],
-#             "x2":coords[2],
-#             "y2":coords[3],
-#             "image": (f"{im_prefix}{page_index}_{number}.jpeg"),
-#             "width_page":p_w, 
-#             "height_page": p_h, 
-#             "language":lang,
-#             "img address":img_addr,
-#             "author":author, 
-#             "publisher":publisher,
-#             "publication date":publication_date}
-
-# def language_formatting(lang:str)->str:
-#     '''for the database'''
-#     if lang == "ces": return "cs"
-#     if lang == "fra": return "fr"
-#     if lang == "rus": return "ru"
-#     if lang == "deu": return "de"
 
 def process_image(img_file:str, img_url:str, lang:str, writer:csv.DictWriter, infos:list, page_index:str, res_dir:str):
-    journal_name, year, volume, issue_number = infos
-    image_name_prefix = "%s_%s_%s_%s_" % (journal_name, year, volume, issue_number)
+    journal_name, publication_date, volume, issue_number = infos
+    image_name_prefix = "%s_%s_%s_%s_" % (journal_name, publication_date, volume, issue_number)
     boxes, p_h, p_w = getim.util(img_file, lang)
     if len(boxes) > 0: #page contains images
         captions, degrees_to_rotate = cap.util(img_file, boxes, lang) 
@@ -268,8 +257,8 @@ def process_image(img_file:str, img_url:str, lang:str, writer:csv.DictWriter, in
         for j in range(len(boxes)):
             entity = ut.create_entity(page_index, j+1, captions[j], percentages[j], boxes[j], infos, 
                                     image_name_prefix, p_w, p_h, ut.language_formatting(lang), 
-                                    img_url, "", "", "")
-            # three last are 'author', 'publisher', 'publication date'
+                                    img_url, "", "")
+            # three last are 'author', 'publisher'
             writer.writerow(entity)
     return
 
@@ -316,3 +305,5 @@ def utility(url:str, volume_start:int, issue_start:int):
     work_with_journal(api_url, out_dir, out_dir, volume_start, issue_start)
     delete_json_files(out_dir)
     return
+
+utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:b75722a2-935c-11e0-bdd7-0050569d679d', 0, 0)
