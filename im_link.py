@@ -173,15 +173,31 @@ def find_publication_date(metadata:dict)->str:
         if item['label']['cz'][0] == "Vydáno":
             return item['value']['none'][0]
     return ""
+
+def convert_month_to_number(month:str)->str:
+    month = ut.delete_diacritics(month.lower())
+    months = {'leden':1, 'unor':2, 'brezen':3, 
+              'duben':4, 'kveten':5, 'cerven':6, 
+              'cervenec':7, 'srpen':8, 'zari':9, 
+              'rijen':10, 'listopad':11, 'prosinec':12}
+
+    return str(months[month])
+
 def formta_publication_date(date:str)->str:
     publication_date = ""
     if len(date) == 0: return publication_date
     time_span = date.split('-')
     if len(time_span) == 1: # single date, not a span
-        single_date = time_span.split('.')
-        if len(single_date) == 1: # just year
-            year = single_date[0]
-            publication_date = "%s-%s-%s-%s-%s-%s" % (year, "01", "01", year, "12", "31")
+        single_date = time_span[0].split('.')
+        if len(single_date) == 1: # a year or month year
+            month_year = single_date[0].split(' ')
+            if len(month_year) == 2: # month year, month a word not a number
+                month = convert_month_to_number(month_year[0]) 
+                year = month_year[1]
+                publication_date = "%s-%s-%s-%s-%s-%s" % (year, month, "01", year, month, "31")
+            elif len(month_year) == 1:
+                year = month_year[0]
+                publication_date = "%s-%s-%s-%s-%s-%s" % (year, "01", "01", year, "12", "31")
         elif len(single_date) == 2:
             month = single_date[0]
             year = single_date[1]
@@ -306,4 +322,4 @@ def utility(url:str, volume_start:int, issue_start:int):
     delete_json_files(out_dir)
     return
 
-utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:b75722a2-935c-11e0-bdd7-0050569d679d', 0, 0)
+utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:b75722a2-935c-11e0-bdd7-0050569d679d', 0, 9)

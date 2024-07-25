@@ -47,7 +47,7 @@ def convert_month_to_number(month:str)->str:
               'juillet':7, 'aout':8, 'septembre':9, 
               'octobre':10, 'novembre':11, 'decembre':12}
 
-    return months[month]
+    return str(months[month])
 
 def format_publication_date(date:str)->str:
     '''Converts publication date 1 avril 1900 to database format 1900-04-01-1900-12-31'''
