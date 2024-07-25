@@ -106,5 +106,5 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "author":author, 
             "publisher":publisher}
 
-# print(1024/1409)
-# print(3956/5328)
+# print(1500/1881)
+# print(2047/2546)

@@ -7,31 +7,108 @@ def highlight_bbox(img:np.ndarray, bbox:list[int])->np.ndarray:
     ery = img.shape[0]
     erx = img.shape[1]
     cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 0), 2)
-    # cv2.imshow('bbox', img)
-    # cv2.waitKey()
     return img
 
 def highlight_bboxes(img:np.ndarray, ocr_file_name:str):
     im = cv2.imread(img)
     tree = ET.parse(ocr_file_name)
     root = tree.getroot()
-    print(root.tag, root.attrib)
-    print()
+
     layout_flag = "Layout"
     text = []
     for child in root:
-        if ends_with(child.tag, layout_flag):
-            for gc in child:
-                for ggc in gc:
-                    for gggc in ggc:
-                        if ends_with(gggc.tag, "TextBlock"):
-                            for g4c in gggc:
-                                ats = g4c.attrib
-                                im = highlight_bbox(im, [int(ats["HPOS"]), int(ats["VPOS"]), int(ats["WIDTH"]), int(ats["HEIGHT"]) ])
+        items = root.items()
+        if child.tag.endswith(layout_flag):
+            parse_layout(child)
+            # for gc in child:
+            #     for ggc in gc:
+            #         for gggc in ggc:
+            #             if ends_with(gggc.tag, "TextBlock"):
+            #                 for g4c in gggc:
+            #                     for g5c in g4c:
+            #                         if ends_with(g5c.tag, "String"):
+            #                             ats = g5c.attrib
+            #                             im = highlight_bbox(im, [int(ats["HPOS"]), int(ats["VPOS"]), int(ats["WIDTH"]), int(ats["HEIGHT"]) ])
+            #                             print(get_attributes(g5c.attrib))
+                                
 
-    cv2.imwrite("bboxes_fr.jpeg", im)
+    # cv2.imwrite("bboxes_fr.jpeg", im)
     
     return
+
+def get_element_coordinates(e:ET.Element)->list[int]:
+    attrs = e.attrib
+    if len(attrs) == 0:
+        return [-1, -1, -1, -1]
+    
+    return
+
+def parse_string(string:ET.Element):
+    return
+
+def parse_text_line(text_line:ET.Element):
+    string_flag = 'String'
+
+    for child in text_line:
+        if child.tag.endswith(string_flag):
+            parse_string(child)
+    return
+
+def parse_text_block(text_block:ET.Element):
+    text_line_flag = 'TextLine'
+    for child in text_block:
+        if child.tag.endswith(text_line_flag):
+            parse_text_line(child)
+    return
+
+def parse_illustration(illustartion:ET.Element):
+    illus_attr = illustartion.attrib
+
+    return
+
+def parse_composed_block(composed_block:ET.Element):
+    illustration_flag = 'Illustration'
+    text_block_flag = 'TextBlock'
+    for child in composed_block:
+        if child.tag.endswith(illustration_flag):
+            parse_illustration(child)
+        elif child.tag.endswith(text_block_flag):
+            parse_text_block(child)
+    return
+
+
+def parse_bottom_margin(bottom_margin:ET.Element):# so far assumption: no important info in that area
+    return
+
+def parse_print_space(print_space:ET.Element):
+    composed_block_flag = 'ComposedBlock'
+    for child in print_space:
+        if child.tag.endswith(composed_block_flag):
+            parse_composed_block(child)
+    return
+
+def parse_page(page:ET.Element):
+    page_attr = page.attrib
+    print(page_attr)
+    bottom_margin_flag = 'BottomMargin'
+    print_space_flag = 'PrintSpace'
+
+    for child in page:
+        if child.tag.endswith(bottom_margin_flag):
+            parse_bottom_margin(child)
+        elif child.tag.endswith(print_space_flag):
+            parse_print_space(child)
+
+    return
+
+def parse_layout(layout:ET.Element):
+    page_flag = 'Page'
+    for child in layout:
+        if child.tag.endswith(page_flag):
+            parse_page(child)
+
+    return
+
 
 def extract_alto_url(img_url:str)->str:
     '''
@@ -50,12 +127,12 @@ def download_alto_file(url:str)->str:
         binary_file.write(r)
     return alto_file_name
 
-def ends_with(str_to_check:str, pattern:str)->bool:
-    lp = len(pattern)
-    ls = len(str_to_check)
-    if str_to_check[ls-lp:] == pattern:
-        return True
-    return False
+# def ends_with(str_to_check:str, pattern:str)->bool:
+#     lp = len(pattern)
+#     ls = len(str_to_check)
+#     if str_to_check[ls-lp:] == pattern:
+#         return True
+#     return False
 
 def get_attributes(attrs:dict)->dict:
     needed_attrs = [ "HEIGHT", "HPOS", "WIDTH", "VPOS", "CONTENT"]
@@ -73,14 +150,14 @@ def alto_parser(alto_file_name:str):
     layout_flag = "Layout"
     text = []
     for child in root:
-        if ends_with(child.tag, layout_flag):
+        if child.tag.endswith(layout_flag):
             for gc in child:
                 for ggc in gc:
                     for gggc in ggc:
-                        if ends_with(gggc.tag, "TextBlock"):
+                        if gggc.tag.endswith("TextBlock"):
                             for g4c in gggc:
                                 for g5c in g4c:
-                                    if ends_with(g5c.tag, "String"):
+                                    if g5c.tag.endswith("String"):
                                         print(get_attributes(g5c.attrib))
     return
 
