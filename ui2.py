@@ -58,18 +58,21 @@ class Window(tk.Frame):
         self.continue_with_link(language.get())
 
     def continue_with_link(self, lang):
-        link_entry, volume_start, issue_start = Link()
+        link_entry, volume_start, month_start, issue_start = Link()
         v_s = self.convert_str_to_int(volume_start.get())
+        m_s = self.convert_str_to_int(month_start.get())
         i_s = self.convert_str_to_int(issue_start.get())
         link = link_entry.get()
         if link == "" or link == " ":
             messagebox.showerror("Error", "Invalid link")
         elif v_s == -1 :
             messagebox.showerror("Error", "Invalid volume start")
+        elif m_s == -1:
+            messagebox.showerror("Error", "Invalid month start")
         elif i_s == -1:
             messagebox.showerror("Error", "Invalid issue start")
         else:
-            manager2.work_with_link(link, lang, v_s, i_s)
+            manager2.work_with_link(link, lang, v_s, m_s, i_s)
             self.open_save_win()
 
     def open_save_win(self):
@@ -80,7 +83,7 @@ class Window(tk.Frame):
     def close_window(self):
         self.master.destroy()
 
-    def convert_str_to_int(self, s:str):
+    def convert_str_to_int(self, s:str)->int:
         if len(s) == 0: return 0
         if s.isnumeric(): return int(s)-1
 
@@ -199,16 +202,21 @@ def Link():
     note1 = tk.Entry(linkWindow, width=20, 
                     textvariable=volume_start).grid(row=8,padx=5,pady=5)
     
-    tk.Label(linkWindow, text ="Enter issue start").grid(row=9, padx=5,pady=5)
-    issue_start = tk.StringVar()
+    tk.Label(linkWindow, text ="Enter month start (ONLY FOR FRENCH LIBRARY)").grid(row=9, padx=5,pady=5)
+    month_start = tk.StringVar()
     note2 = tk.Entry(linkWindow, width=20, 
-                    textvariable=issue_start).grid(row=10,padx=5,pady=5)
+                    textvariable=month_start).grid(row=10,padx=5,pady=5)
+    
+    tk.Label(linkWindow, text ="Enter issue start").grid(row=11, padx=5,pady=5)
+    issue_start = tk.StringVar()
+    note3 = tk.Entry(linkWindow, width=20, 
+                    textvariable=issue_start).grid(row=12,padx=5,pady=5)
 
     Button = tk.Button(linkWindow, text ="OK",
-                       command = linkWindow.destroy).grid(row=11)
+                       command = linkWindow.destroy).grid(row=13)
 
     linkWindow.wait_window()
-    return evar, volume_start, issue_start
+    return evar, volume_start, month_start, issue_start
 
 def is_pdf(file_name):
     if file_name.endswith('.pdf'):

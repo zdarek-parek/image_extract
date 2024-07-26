@@ -42,12 +42,12 @@ def language_formatting_for_text_detection(lang:str)->str: #TODO: find more lang
 
 def convert_month_to_number(month:str)->str:
     month = ut.delete_diacritics(month.lower())
-    months = {'janvier':1, 'fevrier':2, 'mars':3, 
-              'avril':4, 'mai':5, 'juin':6, 
-              'juillet':7, 'aout':8, 'septembre':9, 
-              'octobre':10, 'novembre':11, 'decembre':12}
+    months = {'janvier':'01', 'fevrier':'02', 'mars':'03', 
+              'avril':'04', 'mai':'05', 'juin':'06', 
+              'juillet':'07', 'aout':'08', 'septembre':'09', 
+              'octobre':'10', 'novembre':'11', 'decembre':'12'}
 
-    return str(months[month])
+    return months[month]
 
 def format_publication_date(date:str)->str:
     '''Converts publication date 1 avril 1900 to database format 1900-04-01-1900-12-31'''
@@ -123,7 +123,7 @@ def create_result_dirs_and_files(issue_dir_name:str): # dir where extracted repr
     return result_dir, csvfile_path
 
 
-def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str, issue_temp_fol:str)->bool:
+def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str, issue_num:int, issue_temp_fol:str)->bool:
     pages_json_url = convert_to_json(url)
     pages_json_file = os.path.join(root_dir, 'pages.json') 
     response_ok = ut.read_api_url(pages_json_url, pages_json_file)
@@ -131,6 +131,7 @@ def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, yea
     content = ut.load_json(pages_json_file)
     pages = content['fragment']['contenu']
 
+    issue_month = issue_month + '_' + issue_num
     issue_dir_name = "%s_%s_%s" % (info[0], year, issue_month)#for the page images
     issue_dir_name = ut.format_string(issue_dir_name)
     issue_temp_fol = os.path.join(issue_temp_fol, issue_dir_name)
@@ -198,7 +199,7 @@ def work_with_issue_xml(xml_url:str, root_dir:str)->str:
     url = content_url.split("\"")[1] if len(content_url.split("\"")) > 2 else ""
     return url
 
-def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_month:str, issue_temp_fol:str)->bool:
+def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_month:str, issue_num:int, issue_temp_fol:str)->bool:
     issue_url = issue['url']
     issue_url = work_with_issue_xml(issue_url, root_dir)
     issue_json_url = convert_to_json(issue_url)
@@ -211,26 +212,23 @@ def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_
     info = extract_metadata(info)
     pages_url = content['PageAViewerFragment']['contenu']['PaginationViewerModel']['url']
 
-    success = work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, issue_temp_fol)
+    success = work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, issue_num, issue_temp_fol)
     return success
 
 def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_fol:str, issue_start:str):
     issue_month = convert_month_to_number(month['parameters']['nom'])
     content_rows = month['contenu']
     
-    processed_items_counter =0
+    # processed_items_counter = 0
+    issue_count_in_one_month = 0
     for row in content_rows:
         content_row = row['contenu']
 
         for cr in content_row:
             if cr['active']:
-                if processed_items_counter >= issue_start: # ability to tell the program where to start
-                    # issue_temp_fol = os.path.join(temp_fol, ut.format_string(issue_month))
-                    # issue_res_fol = os.path.join(res_dir, ut.format_str(issue_month))
-                    # ut.create_dir(issue_temp_fol)
-                    # ut.create_dir(issue_res_fol)
-
-                    success = work_with_issue(cr, root_dir, journal_name, year, issue_month, temp_fol)
+                # if processed_items_counter >= issue_start: # ability to tell the program where to start
+                    issue_count_in_one_month += 1
+                    success = work_with_issue(cr, root_dir, journal_name, year, issue_month, issue_count_in_one_month, temp_fol)
                     if not success:
                         os.rmdir(temp_fol)
                         return False
@@ -249,7 +247,7 @@ def work_with_one_month_issue(issue:dict, root_dir:str, journal_name:str, year:s
     success = work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, year_temp_fol)
     return success
 
-def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, issue_start:int):
+def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, month_start:int, issue_start:int):
     year = volume['description']
 
     year_temp_fol = os.path.join(temp_fol, ut.format_string(year))
@@ -266,15 +264,16 @@ def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, 
     content = ut.load_json(volume_json_file)
     if 'PeriodicalPageFragment' in content.keys():
         monthes = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']['contenu']['CalendarGrid']['contenu']
-        for m in monthes:
-            success = work_with_month(m, root_dir, journal_name, year, year_temp_fol, issue_start)
+        for i in range(month_start, len(monthes)):
+            success = work_with_month(monthes[i], root_dir, journal_name, year, year_temp_fol, issue_start)
+            issue_start = 0
     elif 'PageAViewerFragment' in content.keys():
         success = work_with_one_month_issue(content, root_dir, journal_name, year, year_temp_fol,)
 
     return
 
 
-def work_with_volumes(volumes:dict, root_dir:str,  journal_name:str, temp_fol:str, volume_start:int, issue_start:int):
+def work_with_volumes(volumes:dict, root_dir:str,  journal_name:str, temp_fol:str, volume_start:int, month_start:int, issue_start:int):
     rows_of_volumes = volumes['contenu']['CalendarGrid']['contenu'] #list of rows
     processed_volumes_counter = 0
     for row in rows_of_volumes:
@@ -283,13 +282,15 @@ def work_with_volumes(volumes:dict, root_dir:str,  journal_name:str, temp_fol:st
         for rc in row_content:
             if len(rc['url'])>0:
                 if processed_volumes_counter >= volume_start: # ability to tell the program where to start
-                    work_with_volume(rc, root_dir, journal_name, temp_fol, issue_start)
+                    work_with_volume(rc, root_dir, journal_name, temp_fol, month_start, issue_start)
+                    month_start = 0 # next volume will be processed from the beginning (first month)
+                    issue_start = 0
                 processed_volumes_counter +=1
 
     # print(c)
     return
  
-def work_with_journal(url:str, root_dir:str, volume_start:int, issue_start:int):
+def work_with_journal(url:str, root_dir:str, volume_start:int, month_start:int, issue_start:int):
     journal_json_file = os.path.join(root_dir, 'journal.json')
     response_ok = ut.read_api_url(url, journal_json_file)
     if not response_ok: return
@@ -302,10 +303,10 @@ def work_with_journal(url:str, root_dir:str, volume_start:int, issue_start:int):
     # journal_folder_res = os.path.join(res_dir, ut.format_str(journal_name))
     ut.create_dir(journal_folder_temp)
     # ut.create_dir(journal_folder_res)
-    work_with_volumes(volumes, root_dir, journal_name, journal_folder_temp, volume_start, issue_start)
+    work_with_volumes(volumes, root_dir, journal_name, journal_folder_temp, volume_start, month_start, issue_start)
     return
 
-def utility(url:str, volume_start:int, issue_start:str)->None:
+def utility(url:str, volume_start:int, month_start:int, issue_start:str)->None:
     api_url = convert_to_json(url)
     if api_url == None:
         print("invalid url:", url)
@@ -314,7 +315,7 @@ def utility(url:str, volume_start:int, issue_start:str)->None:
     ut.create_dir(out_dir)
     result_out_dir = 'result'
     ut.create_dir(result_out_dir)
-    work_with_journal(api_url, out_dir, volume_start, issue_start)
+    work_with_journal(api_url, out_dir, volume_start, month_start, issue_start)
     # ut.delete_json_files(out_dir)
     return
 
