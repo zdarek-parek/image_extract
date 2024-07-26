@@ -323,3 +323,4 @@ def utility(url:str, volume_start:int, issue_start:int):
     return
 
 # utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:b75722a2-935c-11e0-bdd7-0050569d679d', 0, 9)
+# url = "https://api.kramerius.mzk.cz/search/api/client/v7.0/items/uuid:34f1d3f5-935d-11e0-bdd7-0050569d679d/ocr/alto"

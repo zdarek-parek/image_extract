@@ -77,6 +77,60 @@ def convert_month_to_issue_number(pub_date:str)->str:
         issue = convert_month_to_number(split_date[0])
     return issue
 
+def extract_metadata(info:dict)->list[str]:
+    '''
+    Uses indexation will assuming single pattern for every 
+    json file of an issue to extract important metadata.
+    '''
+    info_list = info['contenu'][0]['contenu']
+    # 0, 1, 2, 3, 4, 9
+    title = info_list[0]['value']['contenu']
+    author = info_list[1]['value']['contenu']
+    publisher = info_list[2]['value']['contenu']
+    publication_date = info_list[4]['value']['contenu']
+    lang = info_list[9]['value']['contenu']
+    meta = [title, author, publisher, publication_date, lang]
+    return meta
+
+def create_result_dirs_and_files(issue_dir_name:str): # dir where extracted reproduction will be
+    result_root = "result"
+    result_dir = os.path.join(result_root, issue_dir_name)#extracted reproductions
+    ut.create_dir(result_dir)
+    result_dir_big = os.path.join(result_dir, 'big_original')
+    ut.create_dir(result_dir_big)
+    csvfile = issue_dir_name+'_data.csv'
+    csvfile_path = os.path.join(result_root, csvfile)
+    return result_dir, csvfile_path
+
+def get_identifier(page_url:str)->str:
+    split_url = page_url.split('/')
+    if len(split_url) > 2:
+        return split_url[-2]
+    return ""
+
+def get_page_num(page_url:str)->str:
+    split_url = page_url.split('/')
+    if len(split_url) > 1:
+        item = split_url[-1]
+        f_num = item.split('.')[0]
+        num = f_num[1:]
+        return num
+    return ""
+
+def convert_page_url_to_alto_url(page_url:str)->str:
+    '''
+    Converts page url to the alto url of the page 
+    (example of the expected url: 
+    'https://gallica.bnf.fr/services/ajax/pagination/page/SINGLE/ark:/12148/bpt6k9740716w/f1.item')
+    '''
+    
+    identifier = get_identifier(page_url)
+    page_num = get_page_num(page_url)
+
+    alto_url = "https://gallica.bnf.fr/RequestDigitalElement?O=%s&E=ALTO&Deb=%s" % (identifier, page_num)
+    return alto_url
+
+
 def process_image(img_path:str, img_url:str, lang:str, writer:csv.DictWriter, info:list[str], page_index:str, res_dir:str):
     journal_name, author, publisher, publication_date, l, issue_number, year = info
     publication_date = format_publication_date(publication_date) # database format
@@ -112,17 +166,6 @@ def work_with_page(page_item:dict, root_dir:str, writer:csv.DictWriter, info:lis
         # print("processed image", img_name)
     return success
 
-def create_result_dirs_and_files(issue_dir_name:str): # dir where extracted reproduction will be
-    result_root = "result"
-    result_dir = os.path.join(result_root, issue_dir_name)#extracted reproductions
-    ut.create_dir(result_dir)
-    result_dir_big = os.path.join(result_dir, 'big_original')
-    ut.create_dir(result_dir_big)
-    csvfile = issue_dir_name+'_data.csv'
-    csvfile_path = os.path.join(result_root, csvfile)
-    return result_dir, csvfile_path
-
-
 def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str, issue_num:int, issue_temp_fol:str)->bool:
     pages_json_url = convert_to_json(url)
     pages_json_file = os.path.join(root_dir, 'pages.json') 
@@ -131,7 +174,7 @@ def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, yea
     content = ut.load_json(pages_json_file)
     pages = content['fragment']['contenu']
 
-    issue_month = issue_month + '_' + issue_num
+    issue_month = issue_month + '_' + str(issue_num)
     issue_dir_name = "%s_%s_%s" % (info[0], year, issue_month)#for the page images
     issue_dir_name = ut.format_string(issue_dir_name)
     issue_temp_fol = os.path.join(issue_temp_fol, issue_dir_name)
@@ -151,34 +194,6 @@ def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, yea
             os.rmdir(issue_temp_fol)
             return False
     return True
-
-'''
-def extract_metadata_not_valid(info:dict)->dict:
-    #won't be used because json file contains 
-    #  french labels with diactritics (prone to errors), instead indexation will be 
-    # used assuming single pattern for every json file of an issue
-    meta = {}
-    info_list = info['contenu'][0]['contenu']
-    web_meta_labels = ["Title", "Author", "Publisher", "Publication date", "Contributor", "Language"]
-    # 0, 1, 2, 3, 4, 9
-    for info_item in info_list:
-        k = info_item['key']['contenu']
-        if k in web_meta_labels:
-            meta[k] = info_item['value']['contenu']
-    return meta
-'''
-
-
-def extract_metadata(info:dict)->list[str]:
-    info_list = info['contenu'][0]['contenu']
-    # 0, 1, 2, 3, 4, 9
-    title = info_list[0]['value']['contenu']
-    author = info_list[1]['value']['contenu']
-    publisher = info_list[2]['value']['contenu']
-    publication_date = info_list[4]['value']['contenu']
-    lang = info_list[9]['value']['contenu']
-    meta = [title, author, publisher, publication_date, lang]
-    return meta
 
 def work_with_issue_xml(xml_url:str, root_dir:str)->str:
     '''Extracts an url, which contains issue data from xml file'''
@@ -238,22 +253,21 @@ def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_f
 def work_with_one_month_issue(issue:dict, root_dir:str, journal_name:str, year:str, year_temp_fol:str)->str:
     issue_month = issue['PageAViewerFragment']['contenu']['IssuePaginationFragment']['currentPage']['contenu']
     issue_month = convert_month_to_issue_number(issue_month)
+    issue_num = 1
     # issue_temp_fol = os.path.join(year_temp_fol, ut.format_string(issue_month))
     # ut.create_dir(issue_temp_fol)
     info = issue['InformationsModel']
     info = extract_metadata(info)
     pages_url = issue['PageAViewerFragment']['contenu']['PaginationViewerModel']['url']
-
-    success = work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, year_temp_fol)
+    
+    success = work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, issue_num, year_temp_fol)
     return success
 
 def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, month_start:int, issue_start:int):
     year = volume['description']
 
     year_temp_fol = os.path.join(temp_fol, ut.format_string(year))
-    # year_res_fol = os.path.join(res_fol, ut.format_str(year))
     ut.create_dir(year_temp_fol)
-    # ut.create_dir(year_res_fol)
 
     volume_url = volume['url']
     volume_json_url = convert_to_json(volume_url)
@@ -263,15 +277,14 @@ def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, 
 
     content = ut.load_json(volume_json_file)
     if 'PeriodicalPageFragment' in content.keys():
-        monthes = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']['contenu']['CalendarGrid']['contenu']
-        for i in range(month_start, len(monthes)):
-            success = work_with_month(monthes[i], root_dir, journal_name, year, year_temp_fol, issue_start)
+        months = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']['contenu']['CalendarGrid']['contenu']
+        for i in range(month_start, len(months)):
+            success = work_with_month(months[i], root_dir, journal_name, year, year_temp_fol, issue_start)
             issue_start = 0
     elif 'PageAViewerFragment' in content.keys():
         success = work_with_one_month_issue(content, root_dir, journal_name, year, year_temp_fol,)
 
     return
-
 
 def work_with_volumes(volumes:dict, root_dir:str,  journal_name:str, temp_fol:str, volume_start:int, month_start:int, issue_start:int):
     rows_of_volumes = volumes['contenu']['CalendarGrid']['contenu'] #list of rows
@@ -300,9 +313,7 @@ def work_with_journal(url:str, root_dir:str, volume_start:int, month_start:int, 
     volumes = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']
 
     journal_folder_temp = os.path.join(root_dir, ut.format_string(journal_name))
-    # journal_folder_res = os.path.join(res_dir, ut.format_str(journal_name))
     ut.create_dir(journal_folder_temp)
-    # ut.create_dir(journal_folder_res)
     work_with_volumes(volumes, root_dir, journal_name, journal_folder_temp, volume_start, month_start, issue_start)
     return
 
@@ -320,7 +331,7 @@ def utility(url:str, volume_start:int, month_start:int, issue_start:str)->None:
     return
 
 
-# url = "https://gallica.bnf.fr/ark:/12148/cb34446843c/date.r="
-# utility(url, 0, 0)
+url = "https://gallica.bnf.fr/ark:/12148/cb34446843c/date.r="
+utility(url, 0, 0, 0)
 
-# TODO: fix month - make it an issue, year format yyyy-mm-dd-yyyy-mm-dd everywhere except for pdf, ocr, error monthes
+# TODO:  ocr

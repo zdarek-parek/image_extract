@@ -2,48 +2,79 @@ import requests
 import xml.etree.ElementTree as ET
 import numpy as np
 import cv2
+import utility_funcs as ut
+import os
+
+
+def get_identifier(page_url:str)->str:
+    split_url = page_url.split('/')
+    if len(split_url) > 2:
+        return split_url[-2]
+    return ""
+
+def get_page_num(page_url:str)->str:
+    split_url = page_url.split('/')
+    if len(split_url) > 1:
+        item = split_url[-1]
+        f_num = item.split('.')[0]
+        num = f_num[1:]
+        return num
+    return ""
+
+def convert_page_url_to_alto_url(page_url:str)->str:
+    '''
+    Converts page url to the alto url of the page 
+    (example of the expected url: 
+    'https://gallica.bnf.fr/services/ajax/pagination/page/SINGLE/ark:/12148/bpt6k9740716w/f1.item')
+    '''
+    
+    identifier = get_identifier(page_url)
+    page_num = get_page_num(page_url)
+
+    alto_url = "https://gallica.bnf.fr/RequestDigitalElement?O=%s&E=ALTO&Deb=%s" % (identifier, page_num)
+    return alto_url
+
+def get_page_width_height(page_attr:dict)->list[int]:
+    ''' Returns width and height of the page.'''
+    return [page_attr['WIDTH'], page_attr['HEIGHT']]
 
 def highlight_bbox(img:np.ndarray, bbox:list[int])->np.ndarray:
-    ery = img.shape[0]
-    erx = img.shape[1]
-    cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 0), 2)
+    cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 255), 2)
     return img
 
-def highlight_bboxes(img:np.ndarray, ocr_file_name:str):
-    im = cv2.imread(img)
-    tree = ET.parse(ocr_file_name)
-    root = tree.getroot()
-
-    layout_flag = "Layout"
-    text = []
-    for child in root:
-        items = root.items()
-        if child.tag.endswith(layout_flag):
-            parse_layout(child)
-            # for gc in child:
-            #     for ggc in gc:
-            #         for gggc in ggc:
-            #             if ends_with(gggc.tag, "TextBlock"):
-            #                 for g4c in gggc:
-            #                     for g5c in g4c:
-            #                         if ends_with(g5c.tag, "String"):
-            #                             ats = g5c.attrib
-            #                             im = highlight_bbox(im, [int(ats["HPOS"]), int(ats["VPOS"]), int(ats["WIDTH"]), int(ats["HEIGHT"]) ])
-            #                             print(get_attributes(g5c.attrib))
-                                
-
-    # cv2.imwrite("bboxes_fr.jpeg", im)
-    
+def highlight_bboxes(img_path:str, ill_bboxes:list[list[int]]):
+    img = cv2.imread(img_path)
+    for bbox in ill_bboxes:
+        img = highlight_bbox(img, bbox)
+    cv2.imwrite("bboxes_fr.jpeg", img)
     return
+
 
 def get_element_coordinates(e:ET.Element)->list[int]:
     attrs = e.attrib
     if len(attrs) == 0:
         return [-1, -1, -1, -1]
     
-    return
+    needed_attrs = ["HPOS", "VPOS", "WIDTH", "HEIGHT"]
+    res_attrs = []
+    for at in needed_attrs:
+        if at in attrs.keys():
+            res_attrs.append(int(attrs[at]))
+        else:
+            return [-1, -1, -1, -1]
+
+    return res_attrs
+    
+def get_element_content(e:ET.Element)->str:
+    attrs = e.attrib
+    content_attr_flag = "CONTENT"
+    if content_attr_flag in attrs.keys():
+        return attrs[content_attr_flag]
+    return ""
 
 def parse_string(string:ET.Element):
+    content = get_element_content(string)
+    coords = get_element_coordinates(string)
     return
 
 def parse_text_line(text_line:ET.Element):
@@ -61,19 +92,26 @@ def parse_text_block(text_block:ET.Element):
             parse_text_line(child)
     return
 
-def parse_illustration(illustartion:ET.Element):
-    illus_attr = illustartion.attrib
-
-    return
+def parse_illustration(illustartion:ET.Element)->list[int]:
+    '''Returns coordinates of an illustration in page.'''
+    coords = get_element_coordinates(illustartion)
+    return coords
 
 def parse_composed_block(composed_block:ET.Element):
     illustration_flag = 'Illustration'
     text_block_flag = 'TextBlock'
+
+    illustration_blocks = []
+    text_blocks = []
     for child in composed_block:
         if child.tag.endswith(illustration_flag):
-            parse_illustration(child)
+            ill_bl = parse_illustration(child)
+            illustration_blocks.append(ill_bl)
         elif child.tag.endswith(text_block_flag):
-            parse_text_block(child)
+            # parse_text_block(child)
+            text_blocks.append(get_element_coordinates(child))
+    
+    highlight_bboxes(r"C:\Users\dasha\Desktop\py_projects\pic1.jpg", text_blocks)
     return
 
 
@@ -89,7 +127,7 @@ def parse_print_space(print_space:ET.Element):
 
 def parse_page(page:ET.Element):
     page_attr = page.attrib
-    print(page_attr)
+    w, h = get_page_width_height(page_attr)
     bottom_margin_flag = 'BottomMargin'
     print_space_flag = 'PrintSpace'
 
@@ -109,77 +147,39 @@ def parse_layout(layout:ET.Element):
 
     return
 
+def find_illustrations()->list[list[int]]:
+    '''Return list of bboxes of images in page image'''
 
-def extract_alto_url(img_url:str)->str:
-    '''
-    given url of the page image the function will 
-    compose url of the xmpl file of the page
-    '''
-    alto_url = ""
-    return alto_url
+    return
 
-def download_alto_file(url:str)->str:
-    response = requests.get(url)
-    r = response.content
-    print(response.ok)
-    alto_file_name = "alto_fr.xml"
-    with open(alto_file_name, "wb") as binary_file:
-        binary_file.write(r)
-    return alto_file_name
-
-# def ends_with(str_to_check:str, pattern:str)->bool:
-#     lp = len(pattern)
-#     ls = len(str_to_check)
-#     if str_to_check[ls-lp:] == pattern:
-#         return True
-#     return False
-
-def get_attributes(attrs:dict)->dict:
-    needed_attrs = [ "HEIGHT", "HPOS", "WIDTH", "VPOS", "CONTENT"]
-    res_attrs = {}
-    for at in needed_attrs:
-        res_attrs[at] = attrs[at]
-
-    return res_attrs
-
-def alto_parser(alto_file_name:str):
-    tree = ET.parse(alto_file_name)
+def work_with_alto_file(alto_file_path:str):
+    tree = ET.parse(alto_file_path)
     root = tree.getroot()
-    print(root.tag, root.attrib)
-    print()
     layout_flag = "Layout"
-    text = []
     for child in root:
         if child.tag.endswith(layout_flag):
-            for gc in child:
-                for ggc in gc:
-                    for gggc in ggc:
-                        if gggc.tag.endswith("TextBlock"):
-                            for g4c in gggc:
-                                for g5c in g4c:
-                                    if g5c.tag.endswith("String"):
-                                        print(get_attributes(g5c.attrib))
+            parse_layout(child)
+            
+    
+        
     return
+
 
 def find_caption(alto_file_name:str, img_box:list[int])->str:
 
     caption = ""
     return caption
 
-def util(img_bbox:list[int], img_url:str):
-    '''This function receives image coordinates and img url'''
-    ocr_url = extract_alto_url(img_url)
-    alto_file_name = download_alto_file(ocr_url)
-    caption = find_caption(alto_file_name, img_bbox)
+
+
+def utility(page_url:str, dir_for_alto:str):
+    '''Receives page url, calls functions, which find img bboxes and captions.'''
+    alto_url = convert_page_url_to_alto_url(page_url)
+    alto_path = os.path.join(dir_for_alto, "page_alto.xml")
+    ut.download_alto_file(alto_url, alto_path)
+    work_with_alto_file(alto_path)
     return
 
-# url = "https://api.kramerius.mzk.cz/search/api/client/v7.0/items/uuid:34f1d3f5-935d-11e0-bdd7-0050569d679d/ocr/alto"
-# url_fr = "https://gallica.bnf.fr/RequestDigitalElement?O=bpt6k5401509q&E=ALTO&Deb=10"
-# url = "https://gallica.bnf.fr/RequestDigitalElement?O=bpt6k9740716w&E=ALTO&Deb=17"
 
-# download_alto_file(url)
-# alto_f_name = 'alto_cz.xml'
-# alto_parser(alto_f_name)
-
-img = r"C:\Users\dasha\Desktop\py_projects\native.jpg"
-highlight_bboxes(img, "alto_fr.xml")
+url = "https://gallica.bnf.fr/services/ajax/pagination/page/SINGLE/ark:/12148/bpt6k9740716w/f17.item"
+utility(url, '.')

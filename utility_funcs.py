@@ -38,6 +38,19 @@ def load_json(name:str)->dict:
     content = json.loads(file.read())
     return content
 
+def download_alto_file(url:str, file_name:str)->str:
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
+    time.sleep(1)
+    response = requests.get(url, headers=headers)
+    if not response.ok:
+        for _ in range(5):
+            time.sleep(1)
+            response = requests.get(url, headers=headers)
+    r = response.content
+    
+    with open(file_name, "wb") as binary_file:
+        binary_file.write(r)
+    return file_name
 
 def format_string(s:str):
     '''Gets rid of diacriticts and punctution.'''
