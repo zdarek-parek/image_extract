@@ -176,12 +176,12 @@ def find_publication_date(metadata:dict)->str:
 
 def convert_month_to_number(month:str)->str:
     month = ut.delete_diacritics(month.lower())
-    months = {'leden':1, 'unor':2, 'brezen':3, 
-              'duben':4, 'kveten':5, 'cerven':6, 
-              'cervenec':7, 'srpen':8, 'zari':9, 
-              'rijen':10, 'listopad':11, 'prosinec':12}
+    months = {'leden':'01', 'unor':'02', 'brezen':'03', 
+              'duben':'04', 'kveten':'05', 'cerven':'06', 
+              'cervenec':'07', 'srpen':'08', 'zari':'09', 
+              'rijen':'10', 'listopad':'11', 'prosinec':'12'}
 
-    return str(months[month])
+    return months[month]
 
 def formta_publication_date(date:str)->str:
     publication_date = ""
@@ -322,4 +322,4 @@ def utility(url:str, volume_start:int, issue_start:int):
     delete_json_files(out_dir)
     return
 
-utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:b75722a2-935c-11e0-bdd7-0050569d679d', 0, 9)
+# utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:b75722a2-935c-11e0-bdd7-0050569d679d', 0, 9)
