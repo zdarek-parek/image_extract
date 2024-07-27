@@ -192,7 +192,7 @@ def get_box_square(box):
 
 def unite(boxes):
     for i in range(len(boxes)-1):
-        if boxes[i+1][1] - boxes[i][3] > 30:#20#NOTE:change from 20
+        if boxes[i+1][1] - boxes[i][3] > 30:#NOTE:change from 20
             return boxes
     return [get_caption_box(boxes)]
 

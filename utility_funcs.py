@@ -130,3 +130,5 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "img address":img_addr,
             "author":author, 
             "publisher":publisher}
+
+
