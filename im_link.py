@@ -52,20 +52,6 @@ def convert_to_iiif(url:str)->str:
     iiif_url = head+library_domain+uuid
     return iiif_url
 
-def read_api_url(api_url:str, json_name:str)->bool:
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
-    time.sleep(1)
-    response = requests.get(api_url, headers = headers)
-    tries = 5
-    while (not response.ok and tries > 0):
-        time.sleep(1)
-        response = requests.get(api_url, headers = headers)
-        tries -= 1
-
-    r = response.content
-    with open(json_name, "wb") as binary_file:
-        binary_file.write(r)
-    return response.ok
 
 def parse_json(name:str)->dict: #load+json in utility_func
     file = open(name, 'r', encoding='UTF8')
@@ -149,7 +135,7 @@ def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root
     uuid = year_item["id"]
     year = year_item["label"]["none"][0]
     year_json_name = os.path.join(root_dir, "year.json")
-    response_ok = read_api_url(uuid, year_json_name)
+    response_ok = ut.read_api_url(uuid, year_json_name)
     if not response_ok: return True
     content = parse_json(year_json_name)
     volume = extract_part_num(content["metadata"])
@@ -223,7 +209,7 @@ def formta_publication_date(date:str)->str:
 def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lang:str, out_dir:str, root_dir:str):
     uuid = issue_item["id"]
     issue_json_name = os.path.join(root_dir, "issue.json")
-    response_ok = read_api_url(uuid, issue_json_name)
+    response_ok = ut.read_api_url(uuid, issue_json_name)
     if not response_ok: return True
     content = parse_json(issue_json_name)
     issue_number = extract_part_num(content["metadata"])
@@ -253,15 +239,6 @@ def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lan
     
     return True
 
-def save_img(url:str, img_name:str):
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
-    time.sleep(1)
-    response = requests.get(url, headers=headers)
-    if response.ok:
-        with open(img_name, "wb") as f:
-            f.write(response.content)
-    return response.ok
-
 
 def process_image(img_file:str, img_url:str, lang:str, writer:csv.DictWriter, infos:list, page_index:str, res_dir:str):
     journal_name, publication_date, volume, issue_number = infos
@@ -284,7 +261,7 @@ def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:lis
 
     img_name = os.path.splitext(os.path.basename(out_dir))[0] +"_"+ ut.format_string(page_index)+".jpeg"
     img_path = os.path.join(out_dir, img_name)
-    success = save_img(img_url, img_path)
+    success = ut.save_img(img_url, img_path)
     if success:
         process_image(img_path, img_url, lang, writer, infos, page_index, res_dir)
         # print("processed image", img_name)
@@ -292,7 +269,7 @@ def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:lis
 
 def work_with_journal(url:str, out_dir:str, root_dir:str, volume_start:int, issue_start:int):
     journal_json_file = os.path.join(root_dir, 'journal.json')
-    response_ok = read_api_url(url, journal_json_file)
+    response_ok = ut.read_api_url(url, journal_json_file)
     if not response_ok: return
     content = parse_json(journal_json_file)
     metadata = extract_metadata(content["metadata"])

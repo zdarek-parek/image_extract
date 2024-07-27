@@ -12,17 +12,19 @@ def create_dir(dir_name:str)->None:
 
 
 def read_api_url(api_url:str, file_name:str)->bool:
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
     time.sleep(1)
-    response = requests.get(api_url)
+    response = requests.get(api_url, headers=headers)
     tries = 5
     while (not response.ok and tries > 0):
         time.sleep(1)
-        response = requests.get(api_url)
+        response = requests.get(api_url, headers=headers)
         tries -= 1
 
     r = response.content
     with open(file_name, mode = "wb") as binary_file:
         binary_file.write(r)
+    
     return response.ok
 
 
@@ -61,8 +63,7 @@ def format_string(s:str):
         format_str = format_str.replace(c, '_')
     return format_str
 
-
-def save_img(url:str, img_name:str):
+def save_img_unsafe(url:str, img_name:str):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
     time.sleep(1)
     response = requests.get(url, headers=headers)
@@ -70,6 +71,17 @@ def save_img(url:str, img_name:str):
         with open(img_name, "wb") as f:
             f.write(response.content)
     return response.ok
+    
+def save_img(url:str, img_name:str):
+    try:
+        response_ok = save_img_unsafe(url, img_name)
+        return response_ok
+    except Exception as e:
+        print("Error occured. The error is ", e)
+        time.sleep(2)
+        response_ok = save_img_unsafe(url, img_name)
+        return response_ok
+
 
 
 def create_csv_writer(csvfile:str):
