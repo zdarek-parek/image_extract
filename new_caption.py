@@ -515,7 +515,7 @@ def work_with_left(origin, preproc, im_box, lang):
         return "", -1, 0
     return caption, distance, angle
 
-def fix_multiple_captions(cd):
+def fix_multiple_captions(cd:list[tuple])->str:
     not_empty_cap = [cap[0] for cap in cd if len(cap[0]) > 0]
 
     if (len(not_empty_cap) == 0): return ""

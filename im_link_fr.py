@@ -1,8 +1,9 @@
 import os
 import utility_funcs as ut
 import csv
-import image_mining_big as getim
-import new_caption as cap
+# import image_mining_big as getim
+# import new_caption as cap
+import cap_img_from_alto as ci_alto
 import versions as vrs
 
 
@@ -139,9 +140,11 @@ def process_image(img_path:str, img_url:str, lang:str, writer:csv.DictWriter, in
     lang = language_formatting_for_text_detection(lang)
     infos = [journal_name, publication_date, "", issue_number]
 
-    boxes, p_h, p_w = getim.util(img_path, lang)
+    # boxes, p_h, p_w = getim.util(img_path, lang)
+    boxes, captions, degrees_to_rotate, p_w, p_h, highres_img_url = ci_alto.utility(img_url, res_dir)
+    success = ut.save_img(highres_img_url, img_path)
     if len(boxes) > 0: #page contains images
-        captions, degrees_to_rotate = cap.util(img_path, boxes, lang) 
+        # captions, degrees_to_rotate = cap.util(img_path, boxes, lang) 
         percentages = vrs.get_versions(page_index, image_name_prefix, img_path, boxes, res_dir, degrees_to_rotate)
         for j in range(len(boxes)):
             entity = ut.create_entity(page_index, j+1, captions[j], percentages[j], boxes[j], infos, 
@@ -149,7 +152,7 @@ def process_image(img_path:str, img_url:str, lang:str, writer:csv.DictWriter, in
                                     img_url, author, publisher)
             # three last are 'author', 'publisher', 'publication date'
             writer.writerow(entity)
-    return
+    return success
 
 def work_with_page(page_item:dict, root_dir:str, writer:csv.DictWriter, info:list[str],  year:str, issue_month:str, issue_temp_fol:str, res_dir:str, index:int):
     page_index = page_item['contenu']
@@ -159,10 +162,10 @@ def work_with_page(page_item:dict, root_dir:str, writer:csv.DictWriter, info:lis
 
     img_name = create_img_name(info[0], year, issue_month) +"_"+ ut.format_string(page_index)+".jpeg"
     img_path = os.path.join(issue_temp_fol, img_name)
-    success = ut.save_img(img_url, img_path)
+    # success = ut.save_img(img_url, img_path)
    
-    if success:
-        process_image(img_path, img_url, info[4], writer, info, page_index, res_dir)
+    # if success:
+    success = process_image(img_path, img_url, info[4], writer, info, page_index, res_dir)
         # print("processed image", img_name)
     return success
 
