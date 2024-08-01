@@ -197,17 +197,17 @@ def Link():
     note = tk.Entry(linkWindow, width=150, 
                     textvariable=evar).grid(row=6,padx=5,pady=5)
     
-    tk.Label(linkWindow, text ="Enter volume start").grid(row=7, padx=5,pady=5)
+    tk.Label(linkWindow, text ="Enter volume start - number from 1 to number of volumes").grid(row=7, padx=5,pady=5)
     volume_start = tk.StringVar()
     note1 = tk.Entry(linkWindow, width=20, 
                     textvariable=volume_start).grid(row=8,padx=5,pady=5)
     
-    tk.Label(linkWindow, text ="Enter month start (ONLY FOR FRENCH LIBRARY)").grid(row=9, padx=5,pady=5)
+    tk.Label(linkWindow, text ="Enter month start - number from 1 to 12 (ONLY FOR FRENCH LIBRARY)").grid(row=9, padx=5,pady=5)
     month_start = tk.StringVar()
     note2 = tk.Entry(linkWindow, width=20, 
                     textvariable=month_start).grid(row=10,padx=5,pady=5)
     
-    tk.Label(linkWindow, text ="Enter issue start").grid(row=11, padx=5,pady=5)
+    tk.Label(linkWindow, text ="Enter issue start - number from 1 to number of issues").grid(row=11, padx=5,pady=5)
     issue_start = tk.StringVar()
     note3 = tk.Entry(linkWindow, width=20, 
                     textvariable=issue_start).grid(row=12,padx=5,pady=5)

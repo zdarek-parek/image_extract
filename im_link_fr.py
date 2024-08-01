@@ -80,17 +80,16 @@ def convert_month_to_issue_number(pub_date:str)->str:
 
 def extract_metadata(info:dict)->list[str]:
     '''
-    Uses indexation will assuming single pattern for every 
-    json file of an issue to extract important metadata.
+    Uses set of keys to extract important metadata.
     '''
+
+    meta_dict = {'Titre':'', 'Auteur':'', 'Editeur':'', 'Date d\'edition':'', 'Contributeur':'', 'Langue':''}
     info_list = info['contenu'][0]['contenu']
-    # 0, 1, 2, 3, 4, 9
-    title = info_list[0]['value']['contenu']
-    author = info_list[1]['value']['contenu']
-    publisher = info_list[2]['value']['contenu']
-    publication_date = info_list[4]['value']['contenu']
-    lang = info_list[9]['value']['contenu']
-    meta = [title, author, publisher, publication_date, lang]
+    for info in info_list:
+        key = ut.delete_diacritics(info['key']['contenu'])
+        if key in meta_dict.keys():
+            meta_dict[key] = info['value']['contenu']
+    meta = list(meta_dict.values())
     return meta
 
 def create_result_dirs_and_files(issue_dir_name:str): # dir where extracted reproduction will be
@@ -132,12 +131,12 @@ def convert_page_url_to_alto_url(page_url:str)->str:
     return alto_url
 
 
-def process_image(img_path:str, img_url:str, lang:str, writer:csv.DictWriter, info:list[str], page_index:str, res_dir:str):
-    journal_name, author, publisher, publication_date, l, issue_number, year = info
+def process_image(img_path:str, img_url:str, writer:csv.DictWriter, info:list[str], page_index:str, res_dir:str):
+    journal_name, author, publisher, publication_date, contributor, l, issue_number, year = info
     publication_date = format_publication_date(publication_date) # database format
     image_name_prefix = "%s_%s_%s_" % (journal_name, publication_date, issue_number)
     image_name_prefix = ut.format_string(image_name_prefix)
-    lang = language_formatting_for_text_detection(lang)
+    lang = language_formatting_for_text_detection(l)
     infos = [journal_name, publication_date, "", issue_number]
 
     # boxes, p_h, p_w = getim.util(img_path, lang)
@@ -165,7 +164,7 @@ def work_with_page(page_item:dict, root_dir:str, writer:csv.DictWriter, info:lis
     # success = ut.save_img(img_url, img_path)
    
     # if success:
-    success = process_image(img_path, img_url, info[4], writer, info, page_index, res_dir)
+    success = process_image(img_path, img_url, writer, info, page_index, res_dir)
         # print("processed image", img_name)
     return success
 
@@ -233,27 +232,27 @@ def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_
     success = work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, issue_num, issue_temp_fol)
     return success
 
-def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_fol:str, issue_start:str):
+def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_fol:str, issue_start:str)->str:
     issue_month = convert_month_to_number(month['parameters']['nom'])
     content_rows = month['contenu']
     
-    # processed_items_counter = 0
+    processed_items_counter = 0
     issue_count_in_one_month = 0
     for row in content_rows:
         content_row = row['contenu']
 
         for cr in content_row:
             if cr['active']:
-                # if processed_items_counter >= issue_start: # ability to tell the program where to start
+                if processed_items_counter >= issue_start: # ability to tell the program where to start
                     issue_count_in_one_month += 1
                     success = work_with_issue(cr, root_dir, journal_name, year, issue_month, issue_count_in_one_month, temp_fol)
                     if not success:
                         os.rmdir(temp_fol)
                         return False
-
+                processed_items_counter += 1
     return True
 
-def work_with_one_month_issue(issue:dict, root_dir:str, journal_name:str, year:str, year_temp_fol:str)->str:
+def work_with_one_month_issue(issue:dict, root_dir:str, journal_name:str, year:str, year_temp_fol:str)->bool:
     issue_month = issue['PageAViewerFragment']['contenu']['IssuePaginationFragment']['currentPage']['contenu']
     issue_month = convert_month_to_issue_number(issue_month)
     issue_num = 1
@@ -285,7 +284,7 @@ def work_with_volume(volume:dict, root_dir:str, journal_name:str, temp_fol:str, 
             success = work_with_month(months[i], root_dir, journal_name, year, year_temp_fol, issue_start)
             issue_start = 0
     elif 'PageAViewerFragment' in content.keys():
-        success = work_with_one_month_issue(content, root_dir, journal_name, year, year_temp_fol,)
+        success = work_with_one_month_issue(content, root_dir, journal_name, year, year_temp_fol)
 
     return
 
@@ -299,11 +298,9 @@ def work_with_volumes(volumes:dict, root_dir:str,  journal_name:str, temp_fol:st
             if len(rc['url'])>0:
                 if processed_volumes_counter >= volume_start: # ability to tell the program where to start
                     work_with_volume(rc, root_dir, journal_name, temp_fol, month_start, issue_start)
-                    month_start = 0 # next volume will be processed from the beginning (first month)
+                    month_start = 0 # next volume will be processed from the beginning (first month, first issue)
                     issue_start = 0
                 processed_volumes_counter +=1
-
-    # print(c)
     return
  
 def work_with_journal(url:str, root_dir:str, volume_start:int, month_start:int, issue_start:int):
@@ -330,11 +327,9 @@ def utility(url:str, volume_start:int, month_start:int, issue_start:str)->None:
     result_out_dir = 'result'
     ut.create_dir(result_out_dir)
     work_with_journal(api_url, out_dir, volume_start, month_start, issue_start)
-    # ut.delete_json_files(out_dir)
+    ut.delete_json_files(out_dir)
     return
 
 
-url = "https://gallica.bnf.fr/ark:/12148/cb34446843c/date.r="
-utility(url, 0, 0, 0)
-
-# TODO:  ocr
+# url = "https://gallica.bnf.fr/ark:/12148/cb34446843c/date.r="
+# utility(url, 0, 0, 0)

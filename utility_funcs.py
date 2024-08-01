@@ -5,6 +5,11 @@ import json
 import unidecode
 import csv
 
+
+time_star = 0
+elapsed_time = 0
+munber_of_downloaded_items = 0
+
 def create_dir(dir_name:str)->None:
     if not os.path.exists(dir_name):
         os.mkdir(dir_name)
@@ -14,6 +19,7 @@ def create_dir(dir_name:str)->None:
 def read_api_url(api_url:str, file_name:str)->bool:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
     time.sleep(1)
+    time_star = time.time()
     response = requests.get(api_url, headers=headers)
     tries = 5
     while (not response.ok and tries > 0):
@@ -78,7 +84,7 @@ def save_img(url:str, img_name:str):
         return response_ok
     except Exception as e:
         print("Error occured. The error is ", e)
-        time.sleep(2)
+        time.sleep(60)
         response_ok = save_img_unsafe(url, img_name)
         return response_ok
 
@@ -130,5 +136,3 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "img address":img_addr,
             "author":author, 
             "publisher":publisher}
-
-

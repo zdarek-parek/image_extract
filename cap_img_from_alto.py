@@ -59,9 +59,10 @@ def convert_page_url_to_alto_url(page_url:str)->str:
     return alto_url
 
 
-def get_element_width_height(attr:dict)->list[int]:
+def get_element_width_height(e:ET.Element)->list[int]:
     ''' Returns width and height of the element.'''
-    return [attr['WIDTH'], attr['HEIGHT']]
+    attr = e.attrib
+    return [int(attr['WIDTH']), int(attr['HEIGHT'])]
 
 def get_element_coordinates(e:ET.Element)->list[int]:
     attrs = e.attrib
@@ -113,26 +114,6 @@ def parse_illustration(illustartion:ET.Element)->list[int]:
     return coords
 
 
-'''
-# def parse_composed_block(composed_block:ET.Element):
-#     illustration_flag = 'Illustration'
-#     text_block_flag = 'TextBlock'
-
-#     illustration_blocks = []
-#     text_blocks = []
-#     for child in composed_block:
-#         if child.tag.endswith(illustration_flag):
-#             ill_bl = parse_illustration(child)
-#             illustration_blocks.append(ill_bl)
-#         elif child.tag.endswith(text_block_flag):
-#             # parse_text_block(child)
-#             text_blocks.append(get_element_coordinates(child))
-    
-#     # highlight_bboxes(r"C:\Users\dasha\Desktop\py_projects\pic1.jpg", text_blocks)
-#     return
-'''
-
-
 def find_elements_in_composed_block(composed_block:ET.Element, bbox_flag:str)->list[ET.Element]:
     '''returns elements with given flag found in a composed block of the alto file.'''
     blocks = []
@@ -154,8 +135,8 @@ def parse_print_space(print_space:ET.Element, bbox_flag:str)->list[ET.Element]:
     return blocks
 
 def parse_page(page:ET.Element, bbox_flag:str)->list[ET.Element]:
-    page_attr = page.attrib
-    w, h = get_element_width_height(page_attr)
+    # page_attr = page.attrib
+    # w, h = get_element_width_height(page)
     bottom_margin_flag = 'BottomMargin'
     print_space_flag = 'PrintSpace'
 
@@ -248,9 +229,9 @@ def find_page_width_height(alto_path:str)->list[int]:
             page_flag = 'Page'
             for child2 in child:
                 if child2.tag.endswith(page_flag):
-                    return get_element_width_height(child2.attrib)
+                    return get_element_width_height(child2)
             
-    return 0, 0
+    return [0, 0]
 
 def get_highres_img_url(url:str, alto_path:str)->str:
     # "https://gallica.bnf.fr/services/ajax/pagination/page/SINGLE/ark:/12148/bpt6k9740716w/f17.item"
@@ -273,13 +254,13 @@ def get_small_blocks(blocks:list[ET.Element], limit:int, criterion_index:int)->l
             break
     return small_close_text_blocks
 
-def analyze_cap_blocks(blocks:list[ET.Element])->list[str]:
+def analyze_read_cap_blocks(blocks:list[ET.Element])->list[str]:
     if len(blocks) == 0:
         return []
     else:
         text = read_caption(blocks)
         if len(text) > 30:
-            closest_text = blocks[0]
+            closest_text = read_caption([blocks[0]])
             return closest_text
         else:
             return text
@@ -309,16 +290,17 @@ def find_nearest_text_bottom(ill_coords, text_blocks:list[ET.Element], width_ori
             if (1_000 <= get_element_bbox_square(sorted_blocks[i]) <= ill_coords[2]*ill_coords[3]/2):
                 res.append(sorted_blocks[i])
 
-    if len(res) == 0: return res, -1
+    if len(res) == 0: return [], -1
     elif len(res) == 1:
         if get_element_width_height(closest_text_block)[1] < ill_coords[3]/2: # already checked if the size is appropriate (2.), now need to make sure that it is nit too high
             # dist_between_img_and_text_block = y0 - (ill_coords[1]+ill_coords[3])
-            return [closest_text_block], dist_between_img_and_text_block
-        return res, -1
+            res_words = analyze_read_cap_blocks(res)
+            return res_words, dist_between_img_and_text_block
+        return [], -1
     else: # 3. find text blocks that are close to the closest text block to the image
         small_close_text_blocks = get_small_blocks(res, h0, 3)
-        result = analyze_cap_blocks(small_close_text_blocks)
-        if len(result) > 0:
+        result = analyze_read_cap_blocks(small_close_text_blocks)
+        if (0 < len(result) <= 30):
             return result, dist_between_img_and_text_block
         else: return [], -1
 
@@ -343,15 +325,17 @@ def find_nearest_text_top(ill_coords, text_blocks:list[ET.Element], width_orig:i
         if (y0 - (y+h)) < height_orig/100:
             if (1_000 <= get_element_bbox_square(sorted_blocks[i]) <= ill_coords[2]*ill_coords[3]/2):
                 res.append(sorted_blocks[i])
-    if len(res) == 0: return res, -1
+    
+    if len(res) == 0: return [], -1
     elif len(res) == 1:
         if get_element_width_height(closest_text_block)[1] < ill_coords[3]/2: # already checked if the size is appropriate (2.), now need to make sure that it is nit too high
-            return [closest_text_block], dist_between_img_and_text_block
-        return res, -1
+            res_words = analyze_read_cap_blocks(res)
+            return res_words, dist_between_img_and_text_block
+        return [], -1
     else:
         small_close_text_blocks = get_small_blocks(res, h0, 3)
-        result = analyze_cap_blocks(small_close_text_blocks)
-        if len(result) > 0:
+        result = analyze_read_cap_blocks(small_close_text_blocks)
+        if (0 < len(result) <= 30):
             return result, dist_between_img_and_text_block
         else: return [], -1
 
@@ -376,15 +360,18 @@ def find_nearest_text_right(ill_coords, text_blocks:list[ET.Element], width_orig
         if (x - (x0+w0)) < width_orig/100:
             if (1_000 <= get_element_bbox_square(sorted_blocks[i]) <= ill_coords[2]*ill_coords[3]/2):
                 res.append(sorted_blocks[i])
-    if len(res) == 0: return res, -1
+
+   
+    if len(res) == 0: return [], -1
     elif len(res) == 1:
         if get_element_width_height(closest_text_block)[0] < ill_coords[2]/2: # already checked if the size is appropriate (2.), now need to make sure that it is not too wide
-            return [closest_text_block], dist_between_img_and_text_block
-        return res, -1
+            res_words = analyze_read_cap_blocks(res)
+            return res_words, dist_between_img_and_text_block
+        return [], -1
     else:
         small_close_text_blocks = get_small_blocks(res, w0, 2)
-        result = analyze_cap_blocks(small_close_text_blocks)
-        if len(result) > 0:
+        result = analyze_read_cap_blocks(small_close_text_blocks)
+        if (0 < len(result) <= 30):
             return result, dist_between_img_and_text_block
         else: return [], -1
 
@@ -409,15 +396,18 @@ def find_nearest_text_left(ill_coords, text_blocks:list[ET.Element], width_orig:
         if ((x+w) - x0) < width_orig/100:
             if (1_000 <= get_element_bbox_square(sorted_blocks[i]) <= ill_coords[2]*ill_coords[3]/2):
                 res.append(sorted_blocks[i])
-    if len(res) == 0: return res, -1
+
+    
+    if len(res) == 0: return [], -1
     elif len(res) == 1:
         if get_element_width_height(closest_text_block)[0] < ill_coords[2]/2: # already checked if the size is appropriate (2.), now need to make sure that it is not too wide
-            return [closest_text_block], dist_between_img_and_text_block
-        return res, -1
+            res_words = analyze_read_cap_blocks(res)
+            return res_words, dist_between_img_and_text_block
+        return [], -1
     else:
         small_close_text_blocks = get_small_blocks(res, w0, 2)
-        result = analyze_cap_blocks(small_close_text_blocks)
-        if len(result) > 0:
+        result = analyze_read_cap_blocks(small_close_text_blocks)
+        if (0 < len(result) <= 30):
             return result, dist_between_img_and_text_block
         else: return [], -1
 
@@ -436,13 +426,13 @@ def find_caption(illustration:ET.Element, text_blocks:dict, width:int, height:in
     caps_dists = []
     cap_b, distance_b, angle_b = work_with_bottom(ill_coords, text_blocks[bottom_flag], width, height)
     caps_dists.append((cap_b, distance_b))
-    cap_t, distance_t, angle_t = work_with_top(ill_coords, text_blocks[bottom_flag], width, height)
+    cap_t, distance_t, angle_t = work_with_top(ill_coords, text_blocks[up_flag], width, height)
     caps_dists.append((cap_t, distance_t))
-    cap_r, distance_r, angle_r = work_with_right(ill_coords, text_blocks[bottom_flag], width, height)
+    cap_r, distance_r, angle_r = work_with_right(ill_coords, text_blocks[right_flag], width, height)
     caps_dists.append((cap_r, distance_r))
-    cap_l, distance_l, angle_l = work_with_top(ill_coords, text_blocks[bottom_flag], width, height)
+    cap_l, distance_l, angle_l = work_with_left(ill_coords, text_blocks[left_flag], width, height)
     caps_dists.append((cap_l, distance_l))
-    caption = nc.fix_multiple_captions()
+    caption = nc.fix_multiple_captions(caps_dists)
     return caption, 0
 
 def process_page_alto(alto_path:str)->tuple:
@@ -467,7 +457,7 @@ def process_page_alto(alto_path:str)->tuple:
 
 
 def delete_alto_file(path:str):
-    if os.path.exists():
+    if os.path.exists(path):
         os.remove(path)
     return
 
@@ -476,8 +466,8 @@ def utility(page_url:str, dir_for_alto:str)->tuple:
     alto_url = convert_page_url_to_alto_url(page_url)
     alto_path = os.path.join(dir_for_alto, "page_alto.xml")
 
-    highres_img_url = get_highres_img_url(page_url, alto_path)
     ut.download_alto_file(alto_url, alto_path)
+    highres_img_url = get_highres_img_url(page_url, alto_path)
     imgs, caps, angles, w, h = process_page_alto(alto_path)
     delete_alto_file(alto_path)
     return imgs, caps, angles, w, h, highres_img_url
