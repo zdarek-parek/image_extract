@@ -250,8 +250,8 @@ def process_image(img_file:str, img_url:str, lang:str, writer:csv.DictWriter, in
         for j in range(len(boxes)):
             entity = ut.create_entity(page_index, j+1, captions[j], percentages[j], boxes[j], infos, 
                                     image_name_prefix, p_w, p_h, ut.language_formatting(lang), 
-                                    img_url, "", "")
-            # three last are 'author', 'publisher'
+                                    img_url, "", "", "")
+            # 3 last are 'author', 'publisher', 'contributor'
             writer.writerow(entity)
     return
 

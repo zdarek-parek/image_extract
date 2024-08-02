@@ -40,7 +40,7 @@ def util_without_pagenum(input_folder, output_folder, page_count, lang_op, pdf_n
               'page number', 'page index', 'image number', 
               'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
               'width_page', 'height_page', 'language', 
-              'img address', 'author', 'publisher']
+              'img address', 'author', 'publisher', 'contributor']
     csvfile = output_dir+'_data.csv'
     with open(csvfile, 'w', encoding='UTF8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
@@ -56,7 +56,7 @@ def util_without_pagenum(input_folder, output_folder, page_count, lang_op, pdf_n
                     entity = create_entity(page_num, j+1, captions[j], percentages[j], boxes[j], metadata, 
                                            image_name_prefix, p_w, p_h, language_formatting(lang_op),
                                            "", "", "", "")
-                    # the last four 'img address', 'author', 'publisher'
+                    # the last four 'img address', 'author', 'publisher', 'contributor'
                     writer.writerow(entity)
         f.flush()
 
@@ -70,7 +70,7 @@ def create_folder(folder_name, location):
         return new_dir
 
 def create_entity(page_num, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang, 
-                  img_addr, author, publisher, publication_date):
+                  img_addr, author, publisher, contributor):
     parsed_meta = parse_metadata(metadata)
     parsed_meta[0] = parsed_meta[0].replace(';', '_') 
     caption = caption.replace(';', ' ')
@@ -93,7 +93,8 @@ def create_entity(page_num, number, caption, area_percentage, coords, metadata, 
             "language":lang,
             "img address":img_addr,
             "author":author, 
-            "publisher":publisher}
+            "publisher":publisher,
+            "contributor":contributor}
 
 def language_formatting(lang):#for the database
     if lang == "ces": return "cs"
@@ -101,11 +102,3 @@ def language_formatting(lang):#for the database
     if lang == "rus": return "ru"
     if lang == "deu": return "de"
 
-# file = r"app_EXIM/temp/1901_07_VOLNE_SMERY_V/2.png"
-# boxes, p_h, p_w = getim.util(file, 'fra')
-
-
-# inf = r"C:\Users\dasha\Desktop\py_projects\app_EXIM\temp\1939_Minotaure_12_13"
-# outf = r"C:\Users\dasha\Desktop\py_projects\app_EXIM\result\err2"
-# pdf_n = r"C:\Users\dasha\Desktop\err2\1939_Minotaure_12_13.pdf"
-# util_without_pagenum(inf, outf, 24, "fra", pdf_n, "Minotaur, 13-14, , 1933")

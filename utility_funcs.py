@@ -6,9 +6,13 @@ import unidecode
 import csv
 
 
-time_star = 0
-elapsed_time = 0
-munber_of_downloaded_items = 0
+
+last_request_time = 0
+
+def check_time():
+    current_time = time.time()
+    if (current_time - last_request_time) < 10:
+        time.sleep(10 - (current_time - last_request_time))
 
 def create_dir(dir_name:str)->None:
     if not os.path.exists(dir_name):
@@ -18,13 +22,17 @@ def create_dir(dir_name:str)->None:
 
 def read_api_url(api_url:str, file_name:str)->bool:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
+    check_time()
     time.sleep(1)
-    time_star = time.time()
     response = requests.get(api_url, headers=headers)
+    global last_request_time
+    last_request_time = time.time()
     tries = 5
     while (not response.ok and tries > 0):
+        check_time()
         time.sleep(1)
         response = requests.get(api_url, headers=headers)
+        last_request_time = time.time()
         tries -= 1
 
     r = response.content
@@ -48,12 +56,17 @@ def load_json(name:str)->dict:
 
 def download_alto_file(url:str, file_name:str)->str:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
+    check_time()
     time.sleep(1)
     response = requests.get(url, headers=headers)
+    global last_request_time
+    last_request_time = time.time()
     if not response.ok:
         for _ in range(5):
+            check_time()
             time.sleep(1)
             response = requests.get(url, headers=headers)
+            last_request_time = time.time()
     r = response.content
     
     with open(file_name, "wb") as binary_file:
@@ -71,8 +84,11 @@ def format_string(s:str):
 
 def save_img_unsafe(url:str, img_name:str):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
+    check_time()
     time.sleep(1)
     response = requests.get(url, headers=headers)
+    global last_request_time
+    last_request_time = time.time()
     if response.ok:
         with open(img_name, "wb") as f:
             f.write(response.content)
@@ -95,7 +111,7 @@ def create_csv_writer(csvfile:str):
                     'page number', 'page index', 'image number', 
                     'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
                     'width_page', 'height_page', 'language', 
-                    'img address', 'author', 'publisher']
+                    'img address', 'author', 'publisher', 'contributor']
     # csvfile = issue_dir_name+'_data.csv'
     f = open(csvfile, 'w', encoding='UTF8', newline='')
     writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
@@ -113,7 +129,7 @@ def delete_diacritics(s:str)->str:
     return unidecode.unidecode(s)
 
 def create_entity(page_index, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang,
-                  img_addr, author, publisher):
+                  img_addr, author, publisher, contributor):
     journal_name, publication_date, volume, issue_number = metadata
     caption = caption.replace(';', ' ')
     return {"journal name": journal_name,
@@ -135,4 +151,7 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "language":lang,
             "img address":img_addr,
             "author":author, 
-            "publisher":publisher}
+            "publisher":publisher,
+            "contributor":contributor}
+
+

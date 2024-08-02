@@ -145,7 +145,7 @@ def create_folder(folder_name, location):
         return new_dir
 
 def create_entity(page_num, page_index, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang,
-                  img_addr, author, publisher, publication_date):
+                  img_addr, author, publisher, contributor):
     parsed_meta = [metadata[0], metadata[4], metadata[2], metadata[3]]
     parsed_meta[0] = parsed_meta[0].replace(';', '_') 
     caption = caption.replace(';', ' ')
@@ -168,7 +168,8 @@ def create_entity(page_num, page_index, number, caption, area_percentage, coords
             "language":lang,
             "img address":img_addr,
             "author":author, 
-            "publisher":publisher}
+            "publisher":publisher,
+            "contributor":contributor}
 
 def language_formatting(lang):#for the database
     if lang == "ces": return "cs"
@@ -187,7 +188,7 @@ def process_data(bfolder:str, metadata:list, output_folder:str, lang_op:str, img
               'page number', 'page index', 'image number', 
               'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
               'width_page', 'height_page', 'language', 
-              'img address', 'author', 'publisher']
+              'img address', 'author', 'publisher', 'contributor']
     csvfile = output_dir+'_data.csv'
     with open(csvfile, 'w', encoding='UTF8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
@@ -208,7 +209,7 @@ def process_data(bfolder:str, metadata:list, output_folder:str, lang_op:str, img
                     entity = create_entity(pnum, pind, j+1, captions[j], percentages[j], boxes[j], metadata,
                                            image_name_prefix, p_w, p_h, language_formatting(lang_op), 
                                            "", "", "", "")
-                    # the last four 'img address', 'author', 'publisher',
+                    # the last 4 'img address', 'author', 'publisher', 'contributor
                     writer.writerow(entity)
         f.flush()
 

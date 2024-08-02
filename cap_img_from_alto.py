@@ -175,8 +175,8 @@ def find_interesting_bboxes_in_alto(alto_file_path:str, bbox_flag:str)->list[ET.
 
 def get_pos(ill_bbox:list[int], text_bbox:list[int])->str:
     '''Returns a position of the bbox in relation to the image if the bbox has a probability of containing caption.'''
-    x1, y1, x2, y2 = ill_bbox[0], ill_bbox[2], ill_bbox[0]+ill_bbox[2], ill_bbox[2]+ill_bbox[3] # image in page
-    x3, y3, x4, y4 = text_bbox[0], text_bbox[2], text_bbox[0]+text_bbox[2], text_bbox[2]+text_bbox[3] # text block
+    x1, y1, x2, y2 = ill_bbox[0], ill_bbox[1], ill_bbox[0]+ill_bbox[2], ill_bbox[1]+ill_bbox[3] # image in page
+    x3, y3, x4, y4 = text_bbox[0], text_bbox[1], text_bbox[0]+text_bbox[2], text_bbox[1]+text_bbox[3] # text block
     if x2 < x3: 
         if is_possible_to_contain_caption_right_left(ill_bbox, text_bbox):
             return right_flag
@@ -192,15 +192,15 @@ def get_pos(ill_bbox:list[int], text_bbox:list[int])->str:
     return ''
 
 def is_possible_to_contain_caption_right_left(ill_coords:list[int], bbox:list[int]):
-    x1, y1, x2, y2 = ill_coords[0], ill_coords[2], ill_coords[0]+ill_coords[2], ill_coords[2]+ill_coords[3] # image in page
-    x3, y3, x4, y4 = bbox[0], bbox[2], bbox[0]+bbox[2], bbox[2]+bbox[3] # text block
+    x1, y1, x2, y2 = ill_coords[0], ill_coords[1], ill_coords[0]+ill_coords[2], ill_coords[1]+ill_coords[3] # image in page
+    x3, y3, x4, y4 = bbox[0], bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3] # text block
 
     if y1 < y4 and y2 > y3: return True
     return False
 
 def is_possible_to_contain_caption_up_down(ill_coords:list[int], bbox:list[int]):
-    x1, y1, x2, y2 = ill_coords[0], ill_coords[2], ill_coords[0]+ill_coords[2], ill_coords[2]+ill_coords[3] # image in page
-    x3, y3, x4, y4 = bbox[0], bbox[2], bbox[0]+bbox[2], bbox[2]+bbox[3] # text block
+    x1, y1, x2, y2 = ill_coords[0], ill_coords[1], ill_coords[0]+ill_coords[2], ill_coords[1]+ill_coords[3] # image in page
+    x3, y3, x4, y4 = bbox[0], bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3] # text block
 
     if x1 < x4 and x2 > x3: return True
     return False
@@ -474,4 +474,5 @@ def utility(page_url:str, dir_for_alto:str)->tuple:
 
 
 # url = "https://gallica.bnf.fr/services/ajax/pagination/page/SINGLE/ark:/12148/bpt6k9740716w/f17.item"
+# url = "https://gallica.bnf.fr/ark:/12148/bpt6k9740716w/f119.item"
 # utility(url, '.')

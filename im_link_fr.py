@@ -42,6 +42,7 @@ def language_formatting_for_text_detection(lang:str)->str: #TODO: find more lang
     return "fra" # default, if it is not possible to recognize language in json file
 
 def convert_month_to_number(month:str)->str:
+    if month.isnumeric(): return month
     month = ut.delete_diacritics(month.lower())
     months = {'janvier':'01', 'fevrier':'02', 'mars':'03', 
               'avril':'04', 'mai':'05', 'juin':'06', 
@@ -51,8 +52,20 @@ def convert_month_to_number(month:str)->str:
     return months[month]
 
 def format_publication_date(date:str)->str:
-    '''Converts publication date 1 avril 1900 to database format 1900-04-01-1900-12-31'''
-    split_date = date.split(' ')
+    '''Converts publication date 1 avril 1900 to database format 1900-04-01-1900-12-31,
+        also converts publication date 1897-04-01 to 1897-04-01-1897-04-01'''
+    
+    split_date = []
+    if '-' in date:
+        split_date = date.split('-')
+    elif ' ' in date:
+        split_date = date.split(' ')
+    else:
+        split_date = [date]
+
+    if len(split_date[0]) == 4: # firts is a year
+        split_date.reverse()
+    
     pub_date = ""
     if len(split_date) == 3: #day, month, year
         day = split_date[0]
@@ -148,8 +161,8 @@ def process_image(img_path:str, img_url:str, writer:csv.DictWriter, info:list[st
         for j in range(len(boxes)):
             entity = ut.create_entity(page_index, j+1, captions[j], percentages[j], boxes[j], infos, 
                                     image_name_prefix, p_w, p_h, ut.language_formatting(lang), 
-                                    img_url, author, publisher)
-            # three last are 'author', 'publisher', 'publication date'
+                                    img_url, author, publisher, contributor)
+            # 4 last are 'author', 'publisher', 'contributor'
             writer.writerow(entity)
     return success
 
