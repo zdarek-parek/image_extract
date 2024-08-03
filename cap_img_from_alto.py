@@ -1,7 +1,7 @@
 import requests
 import xml.etree.ElementTree as ET
 import numpy as np
-import cv2
+# import cv2
 import utility_funcs as ut
 import os
 import new_caption as nc
@@ -62,7 +62,9 @@ def convert_page_url_to_alto_url(page_url:str)->str:
 def get_element_width_height(e:ET.Element)->list[int]:
     ''' Returns width and height of the element.'''
     attr = e.attrib
-    return [int(attr['WIDTH']), int(attr['HEIGHT'])]
+    if ('WIDTH' in attr.keys()) and ('HEIGHT' in attr.keys()):
+        return [int(attr['WIDTH']), int(attr['HEIGHT'])]
+    return [0, 0]
 
 def get_element_coordinates(e:ET.Element)->list[int]:
     attrs = e.attrib
@@ -132,6 +134,8 @@ def parse_print_space(print_space:ET.Element, bbox_flag:str)->list[ET.Element]:
     for child in print_space:
         if child.tag.endswith(composed_block_flag):
             blocks += find_elements_in_composed_block(child, bbox_flag)
+        if child.tag.endswith(bbox_flag):
+            blocks.append(child)
     return blocks
 
 def parse_page(page:ET.Element, bbox_flag:str)->list[ET.Element]:
