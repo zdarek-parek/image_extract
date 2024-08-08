@@ -181,7 +181,7 @@ def work_with_page(page_item:dict, root_dir:str, writer:csv.DictWriter, info:lis
         # print("processed image", img_name)
     return success
 
-def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str, issue_num:int, issue_temp_fol:str)->bool:
+def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str, issue_num:str, issue_temp_fol:str)->bool:
     pages_json_url = convert_to_json(url)
     pages_json_file = os.path.join(root_dir, 'pages.json') 
     response_ok = ut.read_api_url(pages_json_url, pages_json_file)
@@ -189,7 +189,7 @@ def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, yea
     content = ut.load_json(pages_json_file)
     pages = content['fragment']['contenu']
 
-    issue_month = issue_month + '_' + str(issue_num)
+    issue_month = issue_month + '_' + issue_num
     issue_dir_name = "%s_%s_%s" % (info[0], year, issue_month)#for the page images
     issue_dir_name = ut.format_string(issue_dir_name)
     issue_temp_fol = os.path.join(issue_temp_fol, issue_dir_name)
@@ -229,21 +229,39 @@ def work_with_issue_xml(xml_url:str, root_dir:str)->str:
     url = content_url.split("\"")[1] if len(content_url.split("\"")) > 2 else ""
     return url
 
-def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_month:str, issue_num:int, issue_temp_fol:str)->bool:
+def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_month:str, issue_num:str, issue_temp_fol:str)->bool:
     issue_url = issue['url']
     issue_url = work_with_issue_xml(issue_url, root_dir)
-    issue_json_url = convert_to_json(issue_url)
-    issue_json_file = os.path.join(root_dir, 'issue.json') 
-    response_ok = ut.read_api_url(issue_json_url, issue_json_file)
-    if not response_ok: return
+    if len(issue_url) > 0:
+        issue_json_url = convert_to_json(issue_url)
+        issue_json_file = os.path.join(root_dir, 'issue.json') 
+        response_ok = ut.read_api_url(issue_json_url, issue_json_file)
+        if not response_ok: return
 
-    content = ut.load_json(issue_json_file)
-    info = content['InformationsModel']
-    info = extract_metadata(info)
-    pages_url = content['PageAViewerFragment']['contenu']['PaginationViewerModel']['url']
+        content = ut.load_json(issue_json_file)
+        info = content['InformationsModel']
+        info = extract_metadata(info)
+        pages_url = content['PageAViewerFragment']['contenu']['PaginationViewerModel']['url']
 
-    success = work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, issue_num, issue_temp_fol)
-    return success
+        success = work_with_pages(pages_url, root_dir, info, journal_name, year, issue_month, issue_num, issue_temp_fol)
+        return success
+    else:
+        pre_issue_url = issue['url']
+        pre_issue_json_url = convert_to_json(pre_issue_url)
+        pre_issue_json_file = os.path.join(root_dir, 'pre_issue.json') 
+        response_ok = ut.read_api_url(pre_issue_json_url, pre_issue_json_file)
+        if not response_ok: return
+        content = ut.load_json(pre_issue_json_file)
+
+        issue_parts = content['PeriodicalPageFragment']['contenu']['SearchResultsFragment']['contenu']['ResultsFragment']['contenu']
+
+        for i in range(len(issue_parts)):
+            if issue_parts[i]['active'] == True:
+                issue_title = issue_parts[i]['title']
+                issue_num = issue_num + '_'+str(i)
+                success = work_with_issue(issue_title, root_dir, journal_name, year, issue_month, issue_num, issue_temp_fol)
+        return success
+
 
 def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_fol:str, issue_start:str)->str:
     issue_month = convert_month_to_number(month['parameters']['nom'])
@@ -258,7 +276,7 @@ def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_f
             if cr['active']:
                 if processed_items_counter >= issue_start: # ability to tell the program where to start
                     issue_count_in_one_month += 1
-                    success = work_with_issue(cr, root_dir, journal_name, year, issue_month, issue_count_in_one_month, temp_fol)
+                    success = work_with_issue(cr, root_dir, journal_name, year, issue_month, str(issue_count_in_one_month), temp_fol)
                     if not success:
                         os.rmdir(temp_fol)
                         return False
@@ -344,5 +362,6 @@ def utility(url:str, volume_start:int, month_start:int, issue_start:str)->None:
     return
 
 
-# url = "https://gallica.bnf.fr/ark:/12148/cb34446843c/date.r="
-# utility(url, 0, 0, 0)
+url = "https://gallica.bnf.fr/ark:/12148/cb34348232c/date"
+# url = "https://gallica.bnf.fr/ark:/12148/cb32857192h/date.r=revue+de+l%27art+ancien+et+moderne.langFR"
+utility(url, 33, 0, 0)

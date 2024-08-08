@@ -19,8 +19,7 @@ def create_dir(dir_name:str)->None:
         os.mkdir(dir_name)
     return
 
-
-def read_api_url(api_url:str, file_name:str)->bool:
+def read_api_url_unsafe(api_url:str, file_name:str)->bool:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
     check_time()
     time.sleep(1)
@@ -41,9 +40,19 @@ def read_api_url(api_url:str, file_name:str)->bool:
     
     return response.ok
 
+def read_api_url(api_url:str, file_name:str)->bool:
+    # try:
+        response_ok = read_api_url_unsafe(api_url, file_name)
+        return response_ok
+    # except Exception as e:
+    #     print("Error occured. The error is ", e)
+    #     time.sleep(60)
+    #     response_ok = read_api_url_unsafe(api_url, file_name)
+    #     return response_ok
+
 
 def delete_json_files(root_folder:str):
-    files_to_delete = ["journal.json", "year.json", "issue.json", "issue.xml", "pages.json", "page.json"]
+    files_to_delete = ["journal.json", "year.json", "issue.json", "issue.xml", "pages.json", "page.json", "pre_issue.json"]
     for file in files_to_delete:
         if os.path.exists(os.path.join(root_folder, file)):
             os.remove(os.path.join(root_folder, file))
@@ -54,7 +63,7 @@ def load_json(name:str)->dict:
     content = json.loads(file.read())
     return content
 
-def download_alto_file(url:str, file_name:str)->str:
+def download_alto_file_unsafe(url:str, file_name:str)->str:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
     check_time()
     time.sleep(1)
@@ -73,14 +82,16 @@ def download_alto_file(url:str, file_name:str)->str:
         binary_file.write(r)
     return file_name
 
-def format_string(s:str):
-    '''Gets rid of diacriticts and punctution.'''
 
-    format_str = unidecode.unidecode(s)
-    bad_chars = [' ', '.', ',', ';', '\'', '-', ':']
-    for c in bad_chars:
-        format_str = format_str.replace(c, '_')
-    return format_str
+def download_alto_file(url:str, file_name:str)->str:
+    # try:
+        file_name = download_alto_file_unsafe(url, file_name)
+        return file_name
+    # except Exception as e:
+    #     print("Error occured. The error is ", e)
+    #     time.sleep(60)
+    #     file_name = download_alto_file(url, file_name)
+    #     return file_name
 
 def save_img_unsafe(url:str, img_name:str):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
@@ -105,6 +116,15 @@ def save_img(url:str, img_name:str):
         return response_ok
 
 
+
+def format_string(s:str):
+    '''Gets rid of diacriticts and punctution.'''
+
+    format_str = unidecode.unidecode(s)
+    bad_chars = [' ', '.', ',', ';', '\'', '-', ':']
+    for c in bad_chars:
+        format_str = format_str.replace(c, '_')
+    return format_str
 
 def create_csv_writer(csvfile:str):
     fieldnames = ['journal name', 'issue', 'volume', 'publication date',
