@@ -4,8 +4,7 @@ import time
 import json
 import unidecode
 import csv
-
-
+import cv2
 
 last_request_time = 0
 
@@ -41,14 +40,14 @@ def read_api_url_unsafe(api_url:str, file_name:str)->bool:
     return response.ok
 
 def read_api_url(api_url:str, file_name:str)->bool:
-    # try:
+    try:
         response_ok = read_api_url_unsafe(api_url, file_name)
         return response_ok
-    # except Exception as e:
-    #     print("Error occured. The error is ", e)
-    #     time.sleep(60)
-    #     response_ok = read_api_url_unsafe(api_url, file_name)
-    #     return response_ok
+    except Exception as e:
+        print("Error occured. The error is ", e)
+        time.sleep(60)
+        response_ok = read_api_url_unsafe(api_url, file_name)
+        return response_ok
 
 
 def delete_json_files(root_folder:str):
@@ -63,35 +62,35 @@ def load_json(name:str)->dict:
     content = json.loads(file.read())
     return content
 
-def download_alto_file_unsafe(url:str, file_name:str)->str:
+def download_alto_file_unsafe(url:str, file_name:str)->bool:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
     check_time()
     time.sleep(1)
     response = requests.get(url, headers=headers)
     global last_request_time
     last_request_time = time.time()
-    if not response.ok:
-        for _ in range(5):
-            check_time()
-            time.sleep(1)
-            response = requests.get(url, headers=headers)
-            last_request_time = time.time()
-    r = response.content
+    tries = 5
+    while (not response.ok and tries > 0):
+        check_time()
+        time.sleep(1)
+        response = requests.get(url, headers=headers)
+        last_request_time = time.time()
+        tries -= 1
     
+    r = response.content
     with open(file_name, "wb") as binary_file:
         binary_file.write(r)
-    return file_name
+    return response.ok
 
-
-def download_alto_file(url:str, file_name:str)->str:
-    # try:
-        file_name = download_alto_file_unsafe(url, file_name)
-        return file_name
-    # except Exception as e:
-    #     print("Error occured. The error is ", e)
-    #     time.sleep(60)
-    #     file_name = download_alto_file(url, file_name)
-    #     return file_name
+def download_alto_file(url:str, file_name:str)->bool:
+    try:
+        response_ok = download_alto_file_unsafe(url, file_name)
+        return response_ok
+    except Exception as e:
+        print("Error occured. The error is ", e)
+        time.sleep(60)
+        response_ok = download_alto_file(url, file_name)
+        return response_ok
 
 def save_img_unsafe(url:str, img_name:str):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
@@ -115,7 +114,22 @@ def save_img(url:str, img_name:str):
         response_ok = save_img_unsafe(url, img_name)
         return response_ok
 
+def is_img_request_ok(url:str)->bool:
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
+    time.sleep(1)
+    response = requests.get(url, headers=headers)
+    return response.ok
 
+def delete_file(path:str):
+    if os.path.exists(path):
+        os.remove(path)
+    return
+
+def get_img_dims(img_path:str)->list[int]:
+    '''Returns [width, height] of the image in the givem path.'''
+    img = cv2.imread(img_path)
+    h, w, _ = img.shape
+    return [w, h]
 
 def format_string(s:str):
     '''Gets rid of diacriticts and punctution.'''

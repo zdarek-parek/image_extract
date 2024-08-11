@@ -6,8 +6,9 @@ import csv
 import image_mining_big as getim
 import new_caption as cap
 import versions as vrs
-import time
 import utility_funcs as ut
+import cap_img_from_alto_cz as ci_alto
+
 
 def find_lib(url:str)->str:
     divider = '/'
@@ -243,17 +244,19 @@ def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lan
 def process_image(img_file:str, img_url:str, lang:str, writer:csv.DictWriter, infos:list, page_index:str, res_dir:str):
     journal_name, publication_date, volume, issue_number = infos
     image_name_prefix = "%s_%s_%s_%s_" % (journal_name, publication_date, volume, issue_number)
-    boxes, p_h, p_w = getim.util(img_file, lang)
+
+    boxes, captions, degrees_to_rotate, p_w, p_h, ocr_img_url, success = ci_alto.utility(img_url, res_dir, img_file)
+    # boxes, p_h, p_w = getim.util(img_file, lang)
     if len(boxes) > 0: #page contains images
-        captions, degrees_to_rotate = cap.util(img_file, boxes, lang) 
+        # captions, degrees_to_rotate = cap.util(img_file, boxes, lang) 
         percentages = vrs.get_versions(page_index, image_name_prefix, img_file, boxes, res_dir, degrees_to_rotate)
         for j in range(len(boxes)):
             entity = ut.create_entity(page_index, j+1, captions[j], percentages[j], boxes[j], infos, 
                                     image_name_prefix, p_w, p_h, ut.language_formatting(lang), 
-                                    img_url, "", "", "")
+                                    ocr_img_url, "", "", "")
             # 3 last are 'author', 'publisher', 'contributor'
             writer.writerow(entity)
-    return
+    return success
 
 def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:list, res_dir:str, lang:str):
     page_index = page_item["label"]["none"][0]
@@ -261,9 +264,9 @@ def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:lis
 
     img_name = os.path.splitext(os.path.basename(out_dir))[0] +"_"+ ut.format_string(page_index)+".jpeg"
     img_path = os.path.join(out_dir, img_name)
-    success = ut.save_img(img_url, img_path)
-    if success:
-        process_image(img_path, img_url, lang, writer, infos, page_index, res_dir)
+    # success = ut.save_img(img_url, img_path)
+    # if success:
+    success = process_image(img_path, img_url, lang, writer, infos, page_index, res_dir)
         # print("processed image", img_name)
     return success
 
@@ -299,5 +302,5 @@ def utility(url:str, volume_start:int, issue_start:int):
     delete_json_files(out_dir)
     return
 
-# utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:b75722a2-935c-11e0-bdd7-0050569d679d', 0, 9)
+# utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:b75722a2-935c-11e0-bdd7-0050569d679d', 0, 0)
 # url = "https://api.kramerius.mzk.cz/search/api/client/v7.0/items/uuid:34f1d3f5-935d-11e0-bdd7-0050569d679d/ocr/alto"

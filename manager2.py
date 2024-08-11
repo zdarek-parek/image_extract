@@ -3,7 +3,7 @@ import sys
 import pdf2png
 import im_cap
 import img_bal as ib
-import im_link as il
+import im_link_cz as ilcz
 import im_link_fr as ilfr
 from unidecode import unidecode
 
@@ -65,7 +65,7 @@ def work_with_link(link, lang, volume_start:int, month_start:int, issue_start:in
     if link.startswith(french_link_label): # french link
         ilfr.utility(link, volume_start, month_start, issue_start)
     else:
-        il.utility(link, volume_start, issue_start) # czeck link
+        ilcz.utility(link, volume_start, issue_start) # czeck link
     return
 
 def utility(language):

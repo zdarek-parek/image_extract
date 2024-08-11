@@ -1,11 +1,8 @@
 import os
 import utility_funcs as ut
 import csv
-# import image_mining_big as getim
-# import new_caption as cap
-import cap_img_from_alto as ci_alto
+import cap_img_from_alto_fr as ci_alto
 import versions as vrs
-
 
 def convert_to_json(url:str)->str:
     conversion_part = "/info.json"
@@ -161,7 +158,7 @@ def process_image(img_path:str, img_url:str, writer:csv.DictWriter, info:list[st
         for j in range(len(boxes)):
             entity = ut.create_entity(page_index, j+1, captions[j], percentages[j], boxes[j], infos, 
                                     image_name_prefix, p_w, p_h, ut.language_formatting(lang), 
-                                    img_url, author, publisher, contributor)
+                                    highres_img_url, author, publisher, contributor)
             # 4 last are 'author', 'publisher', 'contributor'
             writer.writerow(entity)
     return success
@@ -258,8 +255,8 @@ def work_with_issue(issue:dict, root_dir:str, journal_name:str, year:str, issue_
         for i in range(len(issue_parts)):
             if issue_parts[i]['active'] == True:
                 issue_title = issue_parts[i]['title']
-                issue_num = issue_num + '_'+str(i)
-                success = work_with_issue(issue_title, root_dir, journal_name, year, issue_month, issue_num, issue_temp_fol)
+                issue_num_num = '_'+str(i)
+                success = work_with_issue(issue_title, root_dir, journal_name, year, issue_month, issue_num+issue_num_num, issue_temp_fol)
         return success
 
 
