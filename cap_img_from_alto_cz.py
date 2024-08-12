@@ -107,3 +107,6 @@ def utility(page_url:str, dir_for_alto:str, img_path:str)->tuple:
 
 # url = "https://api.kramerius.mzk.cz/search/iiif/uuid:1f979f1d-435e-11dd-b505-00145e5790ea/full/full/0/default.jpg"
 # utility(url, "temp")
+
+# HEIGHT="1470" WIDTH="990" HPOS="378" VPOS="439"
+# HEIGHT="821" WIDTH="849" HPOS="1305" VPOS="1996" 

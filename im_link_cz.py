@@ -137,7 +137,7 @@ def work_with_year(year_item:dict, journal_name:str, lang:str, out_dir:str, root
     year = year_item["label"]["none"][0]
     year_json_name = os.path.join(root_dir, "year.json")
     response_ok = ut.read_api_url(uuid, year_json_name)
-    if not response_ok: return True
+    if not response_ok: return False
     content = parse_json(year_json_name)
     volume = extract_part_num(content["metadata"])
     out_dir = os.path.join(out_dir, year)
@@ -211,7 +211,7 @@ def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lan
     uuid = issue_item["id"]
     issue_json_name = os.path.join(root_dir, "issue.json")
     response_ok = ut.read_api_url(uuid, issue_json_name)
-    if not response_ok: return True
+    if not response_ok: return False
     content = parse_json(issue_json_name)
     issue_number = extract_part_num(content["metadata"])
     publication_date = find_publication_date(content["metadata"])
@@ -302,5 +302,5 @@ def utility(url:str, volume_start:int, issue_start:int):
     delete_json_files(out_dir)
     return
 
-# utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:b75722a2-935c-11e0-bdd7-0050569d679d', 0, 0)
+# utility('https://www.digitalniknihovna.cz/mzk/periodical/uuid:ae7b52cd-435d-11dd-b505-00145e5790ea', 0, 0)
 # url = "https://api.kramerius.mzk.cz/search/api/client/v7.0/items/uuid:34f1d3f5-935d-11e0-bdd7-0050569d679d/ocr/alto"

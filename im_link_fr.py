@@ -283,7 +283,7 @@ def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_f
 def work_with_one_month_issue(issue:dict, root_dir:str, journal_name:str, year:str, year_temp_fol:str)->bool:
     issue_month = issue['PageAViewerFragment']['contenu']['IssuePaginationFragment']['currentPage']['contenu']
     issue_month = convert_month_to_issue_number(issue_month)
-    issue_num = 1
+    issue_num = "1"
     # issue_temp_fol = os.path.join(year_temp_fol, ut.format_string(issue_month))
     # ut.create_dir(issue_temp_fol)
     info = issue['InformationsModel']
@@ -359,6 +359,7 @@ def utility(url:str, volume_start:int, month_start:int, issue_start:str)->None:
     return
 
 
-url = "https://gallica.bnf.fr/ark:/12148/cb34348232c/date"
+# url = "https://gallica.bnf.fr/ark:/12148/cb34348232c/date"
 # url = "https://gallica.bnf.fr/ark:/12148/cb32857192h/date.r=revue+de+l%27art+ancien+et+moderne.langFR"
-utility(url, 33, 0, 0)
+# url = "https://gallica.bnf.fr/ark:/12148/cb34348232c/date"
+# utility(url, 0, 0, 0)

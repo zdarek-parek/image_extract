@@ -6,10 +6,6 @@ import os
 import new_caption as nc
 import alto_parser as ap
 
-right_flag = "right"
-left_flag = "left"
-up_flag = "up"
-bottom_flag = "bottom"
 
 
 def get_identifier(page_url:str)->str:
@@ -60,7 +56,8 @@ def get_highres_img_url(url:str, alto_path:str)->str:
 
 
 def process_page_alto(alto_path:str)->tuple:
-    illustrations = ap.find_interesting_bboxes_in_alto(alto_path, ap.ILLUSTRATION_FLAG)
+    # illustrations = ap.find_interesting_bboxes_in_alto(alto_path, ap.ILLUSTRATION_FLAG)
+    illustrations = ap.find_illustrations(alto_path)
     text_blocks = ap.find_interesting_bboxes_in_alto(alto_path, ap.TEXT_BLOCK_FLAG)
 
     width, height = ap.find_page_width_height(alto_path)
@@ -93,4 +90,5 @@ def utility(page_url:str, dir_for_alto:str)->tuple:
 
 # url = "https://gallica.bnf.fr/services/ajax/pagination/page/SINGLE/ark:/12148/bpt6k9740716w/f17.item"
 # url = "https://gallica.bnf.fr/ark:/12148/bpt6k9740716w/f119.item"
+# url = "https://gallica.bnf.fr/ark:/12148/bpt6k5401509q/f37.item"
 # utility(url, '.')

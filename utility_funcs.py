@@ -187,5 +187,3 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "author":author, 
             "publisher":publisher,
             "contributor":contributor}
-
-

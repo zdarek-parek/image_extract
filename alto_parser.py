@@ -117,6 +117,58 @@ def find_interesting_bboxes_in_alto(alto_file_path:str, bbox_flag:str)->list[ET.
 
     return blocks
 
+def find_illustrations(alto_file_path:str)->list[ET.Element]:
+    ills = find_interesting_bboxes_in_alto(alto_file_path, ILLUSTRATION_FLAG)
+    ills_comment = find_ills_in_comment(alto_file_path)
+    res_ills = []
+    if len(ills_comment) == 0: return ills
+    for ill in ills:
+        coords = get_element_coordinates(ill)
+        if coords in ills_comment:
+            res_ills.append(ill)
+    return res_ills
+
+class CommentTreeBuilder(ET.TreeBuilder):
+    def __init__(self):
+        self.COMMENT_FLAG = '!comment'
+
+    def comment(self, data):
+        self.start(self.COMMENT_FLAG, {})
+        self.data(data)
+        self.end(self.COMMENT_FLAG)
+
+def get_coords_of_ill_from_comment(line:str)->list[int]:
+    coords = {HPOS_FLAG:0, VPOS_FLAG:0, WIDTH_FLAG:0, HEIGHT_FLAG:0}
+    words = line.split(' ')
+    for word in words:
+        if word.startswith(HPOS_FLAG):
+            coords[HPOS_FLAG] = int(word.split('=')[1].replace('"', ''))
+        if word.startswith(VPOS_FLAG):
+            coords[VPOS_FLAG] = int(word.split('=')[1].replace('"', ''))
+        if word.startswith(WIDTH_FLAG):
+            coords[WIDTH_FLAG] = int(word.split('=')[1].replace('"', ''))  
+        if word.startswith(HEIGHT_FLAG):
+            coords[HEIGHT_FLAG] = int(word.split('=')[1].replace('"', ''))
+    return list(coords.values())
+
+def parse_comment_text(text:str)->list[list[int]]:
+    ill_bboxes = []
+    lines = text.split('\n')
+    for line in lines:
+        if 'Type="Picture"' in line:
+            ill_bboxes.append(get_coords_of_ill_from_comment(line))
+    return ill_bboxes
+
+def find_ills_in_comment(alto_file_path:str)->list[list[int]]:
+    tb = CommentTreeBuilder()
+    xp = ET.XMLParser(target=tb)
+    tree = ET.parse(alto_file_path, parser=xp)
+    root = tree.getroot()
+    ill_bbboxes = []
+    for child in root:
+        if child.tag.endswith(tb.COMMENT_FLAG):
+            ill_bbboxes = parse_comment_text(child.text)
+    return ill_bbboxes
 
 def get_pos(ill_bbox:list[int], text_bbox:list[int])->str:
     '''Returns a position of the bbox in relation to the image if the bbox has a probability of containing caption.'''
