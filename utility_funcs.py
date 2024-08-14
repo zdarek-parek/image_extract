@@ -135,10 +135,19 @@ def format_string(s:str):
     '''Gets rid of diacriticts and punctution.'''
 
     format_str = unidecode.unidecode(s)
-    bad_chars = [' ', '.', ',', ';', '\'', '-', ':']
+    bad_chars = [' ', '.', ',', ';', '\'', '-', ':', '/', '"']
     for c in bad_chars:
         format_str = format_str.replace(c, '_')
-    return format_str
+    format_str.replace('(', '')
+    format_str.replace(')', '')
+    finish = 0
+    for c in reversed(format_str):
+        if c.isalpha() or c.isdigit():
+            break
+        else: finish += 1
+    
+    res_str = format_str[:-finish] if finish>0 else format_str
+    return res_str
 
 def create_csv_writer(csvfile:str):
     fieldnames = ['journal name', 'issue', 'volume', 'publication date',
@@ -187,3 +196,5 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "author":author, 
             "publisher":publisher,
             "contributor":contributor}
+
+

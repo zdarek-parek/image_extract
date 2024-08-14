@@ -141,11 +141,11 @@ def convert_page_url_to_alto_url(page_url:str)->str:
     return alto_url
 
 
-def process_image(img_path:str, img_url:str, writer:csv.DictWriter, info:list[str], page_index:str, res_dir:str):
+def process_image(img_path:str, img_url:str, writer:csv.DictWriter, info:list[str], page_index:str, res_dir:str, journal_n:str):
     journal_name, author, publisher, publication_date, contributor, l, issue_number, year = info
     publication_date = format_publication_date(publication_date) # database format
-    image_name_prefix = "%s_%s_%s_" % (journal_name, publication_date, issue_number)
-    image_name_prefix = ut.format_string(image_name_prefix)
+    image_name_prefix = "%s_%s_%s_" % (ut.format_string(journal_n), ut.format_string(publication_date), ut.format_string(issue_number))
+    # image_name_prefix = ut.format_string(image_name_prefix)
     lang = language_formatting_for_text_detection(l)
     infos = [journal_name, publication_date, "", issue_number]
 
@@ -163,18 +163,20 @@ def process_image(img_path:str, img_url:str, writer:csv.DictWriter, info:list[st
             writer.writerow(entity)
     return success
 
-def work_with_page(page_item:dict, root_dir:str, writer:csv.DictWriter, info:list[str],  year:str, issue_month:str, issue_temp_fol:str, res_dir:str, index:int):
+def work_with_page(page_item:dict, root_dir:str, writer:csv.DictWriter, info:list[str], journal_name:str, year:str, issue_month:str, issue_temp_fol:str, res_dir:str, index:int):
     page_index = page_item['contenu']
-    if page_index == "NP": page_index = page_index+"_"+str(index)
+    # if page_index == "NP": page_index = page_index+"_"+str(index)
     page_url = page_item['url']
     img_url = convert_url_to_img_url(page_url, root_dir)
 
-    img_name = create_img_name(info[0], year, issue_month) +"_"+ ut.format_string(page_index)+".jpeg"
+    # img_name = create_img_name(journal_name, year, issue_month) +"_"+ ut.format_string(page_index)+".jpeg"
+    page_index = page_index + '_' + ci_alto.get_page_num(img_url)
+    img_name =  ut.format_string(page_index)+".jpeg"
     img_path = os.path.join(issue_temp_fol, img_name)
     # success = ut.save_img(img_url, img_path)
    
     # if success:
-    success = process_image(img_path, img_url, writer, info, page_index, res_dir)
+    success = process_image(img_path, img_url, writer, info, page_index, res_dir, journal_name)
         # print("processed image", img_name)
     return success
 
@@ -187,7 +189,7 @@ def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, yea
     pages = content['fragment']['contenu']
 
     issue_month = issue_month + '_' + issue_num
-    issue_dir_name = "%s_%s_%s" % (info[0], year, issue_month)#for the page images
+    issue_dir_name = "%s_%s_%s" % (journal_name, year, issue_month)#for the page images
     issue_dir_name = ut.format_string(issue_dir_name)
     issue_temp_fol = os.path.join(issue_temp_fol, issue_dir_name)
     ut.create_dir(issue_temp_fol)
@@ -197,7 +199,7 @@ def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, yea
     infos = info + [issue_month, year]
     for i in range(len(pages)):
     # for page in pages:
-        success = work_with_page(pages[i], root_dir, writer, infos, year, issue_month, issue_temp_fol, res_dir, i)
+        success = work_with_page(pages[i], root_dir, writer, infos, journal_name, year, issue_month, issue_temp_fol, res_dir, i)
         if not success:
             file.close()
             os.remove(csvfile_path)
@@ -331,21 +333,49 @@ def work_with_volumes(volumes:dict, root_dir:str,  journal_name:str, temp_fol:st
                 processed_volumes_counter +=1
     return
  
+def shorten_journal_name(long_name:str)->str:
+    split_name = long_name.split(' - ')
+    if len(split_name) > 1: return split_name[0]
+    split_name_gap = long_name.split(' ')
+    short_name = ' '.join(split_name_gap[:5])
+    return short_name
+
 def work_with_journal(url:str, root_dir:str, volume_start:int, month_start:int, issue_start:int):
     journal_json_file = os.path.join(root_dir, 'journal.json')
     response_ok = ut.read_api_url(url, journal_json_file)
     if not response_ok: return
     content = ut.load_json(journal_json_file)
     
-    journal_name = content['PeriodicalPageFragment']['contenu']['PageModel']['parameters']['title']
-    volumes = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']
+    if 'PeriodicalPageFragment' in content.keys():
+        journal_name = content['PeriodicalPageFragment']['contenu']['PageModel']['parameters']['title']
+        journal_name = shorten_journal_name(journal_name)
+        volumes = content['PeriodicalPageFragment']['contenu']['CalendarPeriodicalFragment']
 
-    journal_folder_temp = os.path.join(root_dir, ut.format_string(journal_name))
-    ut.create_dir(journal_folder_temp)
-    work_with_volumes(volumes, root_dir, journal_name, journal_folder_temp, volume_start, month_start, issue_start)
+        journal_folder_temp = os.path.join(root_dir, ut.format_string(journal_name))
+        ut.create_dir(journal_folder_temp)
+        work_with_volumes(volumes, root_dir, journal_name, journal_folder_temp, volume_start, month_start, issue_start)
+    elif 'PageAViewerFragment' in content.keys():
+        info = content['InformationsModel']
+        info = extract_metadata(info)
+
+        journal_name = shorten_journal_name(info[0])
+        journal_folder_temp = os.path.join(root_dir, ut.format_string(journal_name))
+        ut.create_dir(journal_folder_temp)
+
+        year = info[3]
+        year_temp_fol = os.path.join(journal_folder_temp, ut.format_string(year))
+        ut.create_dir(year_temp_fol)
+        success = work_with_one_month_issue(content, root_dir, journal_name, year, year_temp_fol)
+    
     return
 
+def strip_url_from_request(url:str)->str:
+    split_url = url.split('?')
+    return split_url[0]
+
+
 def utility(url:str, volume_start:int, month_start:int, issue_start:str)->None:
+    url = strip_url_from_request(url)
     api_url = convert_to_json(url)
     if api_url == None:
         print("invalid url:", url)

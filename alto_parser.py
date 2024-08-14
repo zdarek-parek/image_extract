@@ -460,6 +460,7 @@ def is_bbox_inscribed_in_bboxes(ill:list[int], ills:list[list[int]])->bool:
     return False
 
 def delete_inscribed_bboxes(ills:list[list[int]], caps:list[str], angles:list[int])->tuple:
+    if len(ills) <= 1: return ills, caps, angles
     res_ills = []
     res_caps = []
     res_angles = []
