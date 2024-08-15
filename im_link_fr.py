@@ -373,9 +373,16 @@ def strip_url_from_request(url:str)->str:
     split_url = url.split('?')
     return split_url[0]
 
+def get_rid_of_bad_ending(url:str)->str:
+    flag_to_delete = ".planchecontact"
+    if url.endswith(flag_to_delete):
+        return url[:len(url)-len(flag_to_delete)]
+    return url
+
 
 def utility(url:str, volume_start:int, month_start:int, issue_start:str)->None:
     url = strip_url_from_request(url)
+    url = get_rid_of_bad_ending(url)
     api_url = convert_to_json(url)
     if api_url == None:
         print("invalid url:", url)
@@ -392,4 +399,5 @@ def utility(url:str, volume_start:int, month_start:int, issue_start:str)->None:
 # url = "https://gallica.bnf.fr/ark:/12148/cb34348232c/date"
 # url = "https://gallica.bnf.fr/ark:/12148/cb32857192h/date.r=revue+de+l%27art+ancien+et+moderne.langFR"
 # url = "https://gallica.bnf.fr/ark:/12148/cb34348232c/date"
+# url = "https://gallica.bnf.fr/ark:/12148/bpt6k7126357w/f1.planchecontact"
 # utility(url, 0, 0, 0)
