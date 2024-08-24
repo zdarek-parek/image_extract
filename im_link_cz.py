@@ -87,16 +87,6 @@ def create_dir(dir_name:str)->None:
         os.mkdir(dir_name)
     return
 
-def create_result_dirs_and_files(issue_dir_name:str):
-    result_root = "result"
-    result_dir = os.path.join(result_root, issue_dir_name)#extracted reproductions
-    create_dir(result_dir)
-    result_dir_big = os.path.join(result_dir, 'big_original')
-    create_dir(result_dir_big)
-    csvfile = issue_dir_name+'_data.csv'
-    csvfile_path = os.path.join(result_root, csvfile)
-    return result_dir, csvfile_path
-
 def work_with_monografy(content:dict, lang:str, out_dir:str):
     monografy_name = extract_monografy_name(content["metadata"])
 
@@ -106,12 +96,15 @@ def work_with_monografy(content:dict, lang:str, out_dir:str):
 
     items = content["items"]
 
-    res_dir, csvfile_path = create_result_dirs_and_files(ut.format_string(monografy_name))
-    writer, file = ut.create_csv_writer(csvfile_path)
+    res_dir, csvfile_path, csvfile_pages_path = ut.create_result_dirs_and_files(ut.format_string(monografy_name))
+    writer, file = ut.create_csv_writer(csvfile_path, ut.IMG_HEAD_CSV)
+    p_writer, p_file = ut.create_csv_writer(csvfile_pages_path, ut.PAGE_HEAD_CSV)
     infos = [monografy_name, "", "", ""]
     for item in items:
-        success = work_with_page(item, monografy_out_dir, writer, infos, res_dir, lang)
+        success = work_with_page(item, monografy_out_dir, writer, infos, res_dir, lang, p_writer)
         if not success:
+            file.close()
+            p_file.close()
             return
     return
 
@@ -224,15 +217,18 @@ def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lan
     
     items = content["items"]
 
-    res_dir, csvfile_path = create_result_dirs_and_files(issue_dir_name)
-    writer, file = ut.create_csv_writer(csvfile_path)
+    res_dir, csvfile_path, csvfile_pages_path = ut.create_result_dirs_and_files(issue_dir_name)
+    writer, file = ut.create_csv_writer(csvfile_path, ut.IMG_HEAD_CSV)
+    p_writer, p_file = ut.create_csv_writer(csvfile_pages_path, ut.PAGE_HEAD_CSV)
     infos = [journal_name, publication_date, volume, issue_number]
 
     for item in items:
-        success = work_with_page(item, issue_res_dir, writer, infos, res_dir, lang)
+        success = work_with_page(item, issue_res_dir, writer, infos, res_dir, lang, p_writer)
         if not success:
             file.close()
+            p_file.close()
             os.remove(csvfile_path)
+            os.remove(csvfile_pages_path)
             os.rmdir(os.path.join(res_dir, "big_original"))
             os.rmdir(res_dir)
             os.rmdir(issue_res_dir)
@@ -241,7 +237,7 @@ def work_with_issue(issue_item:dict, journal_name:str, year:str, volume:str, lan
     return True
 
 
-def process_image(img_file:str, img_url:str, lang:str, writer:csv.DictWriter, infos:list, page_index:str, res_dir:str):
+def process_page_image(img_file:str, img_url:str, lang:str, writer:csv.DictWriter, infos:list, page_index:str, res_dir:str, page_writer:csv.DictWriter):
     journal_name, publication_date, volume, issue_number = infos
     image_name_prefix = "%s_%s_%s_%s_" % (journal_name, publication_date, volume, issue_number)
 
@@ -251,14 +247,17 @@ def process_image(img_file:str, img_url:str, lang:str, writer:csv.DictWriter, in
         # captions, degrees_to_rotate = cap.util(img_file, boxes, lang) 
         percentages = vrs.get_versions(page_index, image_name_prefix, img_file, boxes, res_dir, degrees_to_rotate)
         for j in range(len(boxes)):
-            entity = ut.create_entity(page_index, j+1, captions[j], percentages[j], boxes[j], infos, 
+            entity = ut.create_entity(page_index, "", j+1, captions[j], percentages[j], boxes[j], infos, 
                                     image_name_prefix, p_w, p_h, ut.language_formatting(lang), 
                                     ocr_img_url, "", "", "")
             # 3 last are 'author', 'publisher', 'contributor'
             writer.writerow(entity)
+    page_entity = ut.create_page_entity(page_index, "", infos, p_w, p_h, ut.language_formatting(lang),
+                                        ocr_img_url, "", "", "")
+    page_writer.writerow(page_entity)
     return success
 
-def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:list, res_dir:str, lang:str):
+def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:list, res_dir:str, lang:str, page_writer:csv.DictWriter):
     page_index = page_item["label"]["none"][0]
     img_url = page_item["items"][0]["items"][0]["body"]["id"]
 
@@ -266,7 +265,7 @@ def work_with_page(page_item:dict, out_dir:str, writer:csv.DictWriter, infos:lis
     img_path = os.path.join(out_dir, img_name)
     # success = ut.save_img(img_url, img_path)
     # if success:
-    success = process_image(img_path, img_url, lang, writer, infos, page_index, res_dir)
+    success = process_page_image(img_path, img_url, lang, writer, infos, page_index, res_dir, page_writer)
         # print("processed image", img_name)
     return success
 

@@ -88,7 +88,3 @@ def utility(page_url:str, dir_for_alto:str)->tuple:
     return imgs, caps, angles, w, h, highres_img_url
 
 
-# url = "https://gallica.bnf.fr/services/ajax/pagination/page/SINGLE/ark:/12148/bpt6k9740716w/f17.item"
-# url = "https://gallica.bnf.fr/ark:/12148/bpt6k9740716w/f119.item"
-# url = "https://gallica.bnf.fr/ark:/12148/bpt6k5401509q/f37.item"
-# utility(url, '.')

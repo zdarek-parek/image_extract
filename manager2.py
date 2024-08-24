@@ -15,7 +15,7 @@ def work_with_pdf(pdf_address, metadata, language, input_path, output_path, dump
     clean_directory(dump_pdf)
 
 def work_with_folder(names, metadata, language):
-    dump_pdf = os.path.join(os.path.dirname(sys.argv[0]), 'dump_pdf/')#resource_path('dump_pdf/')#'./dump_pdf/'
+    dump_pdf = 'dump_pdf'#resource_path('dump_pdf/')#'./dump_pdf/'
     if not os.path.exists(dump_pdf):
         os.mkdir(dump_pdf)
 
@@ -30,7 +30,7 @@ def work_with_folder(names, metadata, language):
 def create_folder(pdf_name, location):#creates folder for the pngs converted from pdf
     journal_info = os.path.splitext(os.path.basename(pdf_name))[0]
     journal_info = unidecode(journal_info).replace(' ', '_')
-    folder_name = location+journal_info
+    folder_name = os.path.join(location, journal_info)
     if not os.path.exists(folder_name):
         os.mkdir(folder_name)
         
@@ -69,8 +69,10 @@ def work_with_link(link, lang, volume_start:int, month_start:int, issue_start:in
     return
 
 def utility(language):
-    path = os.path.join(os.path.dirname(sys.argv[0]), 'temp/')
-    out_path = os.path.join(os.path.dirname(sys.argv[0]), 'result/')
+    # path = os.path.join(os.path.dirname(sys.argv[0]), 'temp/')
+    # out_path = os.path.join(os.path.dirname(sys.argv[0]), 'result/')
+    path = 'temp'
+    out_path = 'result'
 
     if not os.path.exists(path):
         os.mkdir(path)

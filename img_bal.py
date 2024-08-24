@@ -1,10 +1,10 @@
 import cv2
 import os
-import sys
 import xml.etree.ElementTree as ET
 import image_mining_big as getim
 import new_caption as cap
 import versions as vrs
+import utility_funcs as ut
 import os
 import csv
 
@@ -135,83 +135,42 @@ def image_name(metadata):
     res_name = name+"_%s_%s_%s_" % (year, volume, issue)
     return res_name
 
-def create_folder(folder_name, location):
-    new_dir = location+folder_name
-    if not os.path.exists(new_dir):
-        os.mkdir(new_dir)
-        os.mkdir(new_dir+'/'+'big_original')
-        return new_dir
-    else:
-        return new_dir
-
-def create_entity(page_num, page_index, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang,
-                  img_addr, author, publisher, contributor):
-    parsed_meta = [metadata[0], metadata[4], metadata[2], metadata[3]]
-    parsed_meta[0] = parsed_meta[0].replace(';', '_') 
-    caption = caption.replace(';', ' ')
-    return {"journal name": parsed_meta[0],
-            "issue":parsed_meta[1],
-            "volume":parsed_meta[2],
-            "publication date":parsed_meta[3],
-            "page number": page_num,
-            "page index": page_index,
-            "image number": number,
-            "caption":caption,
-            "area in percentage":area_percentage,
-            "x1":coords[0],
-            "y1":coords[1],
-            "x2":coords[2],
-            "y2":coords[3],
-            "image": (f"{im_prefix}{page_num}_{number}.jpeg"),
-            "width_page":p_w, 
-            "height_page": p_h, 
-            "language":lang,
-            "img address":img_addr,
-            "author":author, 
-            "publisher":publisher,
-            "contributor":contributor}
-
-def language_formatting(lang):#for the database
-    if lang == "ces": return "cs"
-    if lang == "fra": return "fr"
-    if lang == "rus": return "ru"
-    if lang == "deu": return "de"
-
 def process_data(bfolder:str, metadata:list, output_folder:str, lang_op:str, imgfolder:str, page_count:int):
-    parsed_meta = [metadata[0], metadata[4], metadata[2], metadata[3]]
+    parsed_meta = [ut.format_string(metadata[0]), ut.format_string(metadata[4]), ut.format_string(metadata[2]), ut.format_string(metadata[3])]
     if len(parsed_meta[0]) == 0: image_name_prefix = ""
     else: image_name_prefix = image_name(parsed_meta)
 
     journal_info = os.path.splitext(os.path.basename(bfolder))[0]#batch name
-    output_dir = create_folder(journal_info, output_folder)
-    fieldnames = ['journal name', 'issue', 'volume', 'publication date',
-              'page number', 'page index', 'image number', 
-              'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
-              'width_page', 'height_page', 'language', 
-              'img address', 'author', 'publisher', 'contributor']
-    csvfile = output_dir+'_data.csv'
-    with open(csvfile, 'w', encoding='UTF8', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
-        writer.writeheader()
-        for i in range(1, page_count+1):#page numbers start from 1
-            file = imgfolder + "/%d.png" % i
-            boxes, p_h, p_w = getim.util(file, lang_op)
-            if len(boxes) > 0: #page contains images
-                captions, degrees_to_rotate = cap.util(file, boxes, lang_op)
-                if (i >= len(metadata[5])): #assumption: page number always has page index
-                    pnum, pind = str(i+1), ""
-                else:
-                    if (i >= len(metadata[6])): pind = ""
-                    else: pind =  metadata[6][i]
-                    pnum = metadata[5][i]
-                percentages = vrs.get_versions(pnum, image_name_prefix, file, boxes, output_dir, degrees_to_rotate)
-                for j in range(len(boxes)):
-                    entity = create_entity(pnum, pind, j+1, captions[j], percentages[j], boxes[j], metadata,
-                                           image_name_prefix, p_w, p_h, language_formatting(lang_op), 
-                                           "", "", "", "")
-                    # the last 4 'img address', 'author', 'publisher', 'contributor
-                    writer.writerow(entity)
-        f.flush()
+
+    res_dir, csvfile_path, csvfile_pages_path = ut.create_result_dirs_and_files(journal_info)
+    writer, f = ut.create_csv_writer(csvfile_path, ut.IMG_HEAD_CSV)
+    p_writer, p_file = ut.create_csv_writer(csvfile_pages_path, ut.PAGE_HEAD_CSV)
+
+    for i in range(1, page_count+1):#page numbers start from 1
+        file = imgfolder + "/%d.png" % i
+        boxes, p_h, p_w = getim.util(file, lang_op)
+        
+        if (i >= len(metadata[5])): #assumption: page number always has page index
+            pnum, pind = str(i+1), ""
+        else:
+            if (i >= len(metadata[6])): pind = ""
+            else: pind =  metadata[6][i]
+            pnum = metadata[5][i]
+        
+        if len(boxes) > 0: #page contains images
+            captions, degrees_to_rotate = cap.util(file, boxes, lang_op)
+            percentages = vrs.get_versions(pnum, image_name_prefix, file, boxes, res_dir, degrees_to_rotate)
+            for j in range(len(boxes)):
+                entity = ut.create_entity(pind, pnum, j+1, captions[j], percentages[j], boxes[j], parsed_meta,
+                                        image_name_prefix, p_w, p_h, ut.language_formatting(lang_op), 
+                                        "", "", "", "")
+                # the last 4 'img address', 'author', 'publisher', 'contributor
+                writer.writerow(entity)
+        page_entity = ut.create_page_entity(pind, pnum, parsed_meta, p_w, p_h, ut.language_formatting(lang_op),
+                                            "", "", "", "")
+        p_writer.writerow(page_entity)
+    f.close()
+    p_file.close()
 
     return
 

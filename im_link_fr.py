@@ -102,15 +102,6 @@ def extract_metadata(info:dict)->list[str]:
     meta = list(meta_dict.values())
     return meta
 
-def create_result_dirs_and_files(issue_dir_name:str): # dir where extracted reproduction will be
-    result_root = "result"
-    result_dir = os.path.join(result_root, issue_dir_name)#extracted reproductions
-    ut.create_dir(result_dir)
-    result_dir_big = os.path.join(result_dir, 'big_original')
-    ut.create_dir(result_dir_big)
-    csvfile = issue_dir_name+'_data.csv'
-    csvfile_path = os.path.join(result_root, csvfile)
-    return result_dir, csvfile_path
 
 def get_identifier(page_url:str)->str:
     split_url = page_url.split('/')
@@ -141,11 +132,10 @@ def convert_page_url_to_alto_url(page_url:str)->str:
     return alto_url
 
 
-def process_image(img_path:str, img_url:str, writer:csv.DictWriter, info:list[str], page_index:str, res_dir:str, journal_n:str):
+def process_page_image(img_path:str, img_url:str, writer:csv.DictWriter, info:list[str], page_index:str, res_dir:str, journal_n:str, p_writer:csv.DictWriter):
     journal_name, author, publisher, publication_date, contributor, l, issue_number, year = info
     publication_date = format_publication_date(publication_date) # database format
     image_name_prefix = "%s_%s_%s_" % (ut.format_string(journal_n), ut.format_string(publication_date), ut.format_string(issue_number))
-    # image_name_prefix = ut.format_string(image_name_prefix)
     lang = language_formatting_for_text_detection(l)
     infos = [journal_name, publication_date, "", issue_number]
 
@@ -153,31 +143,28 @@ def process_image(img_path:str, img_url:str, writer:csv.DictWriter, info:list[st
     boxes, captions, degrees_to_rotate, p_w, p_h, highres_img_url = ci_alto.utility(img_url, res_dir)
     success = ut.save_img(highres_img_url, img_path)
     if len(boxes) > 0: #page contains images
-        # captions, degrees_to_rotate = cap.util(img_path, boxes, lang) 
         percentages = vrs.get_versions(page_index, image_name_prefix, img_path, boxes, res_dir, degrees_to_rotate)
         for j in range(len(boxes)):
-            entity = ut.create_entity(page_index, j+1, captions[j], percentages[j], boxes[j], infos, 
+            entity = ut.create_entity(page_index, "", j+1, captions[j], percentages[j], boxes[j], infos, 
                                     image_name_prefix, p_w, p_h, ut.language_formatting(lang), 
                                     highres_img_url, author, publisher, contributor)
-            # 4 last are 'author', 'publisher', 'contributor'
+            # 3 last are 'author', 'publisher', 'contributor'
             writer.writerow(entity)
+    page_entity = ut.create_page_entity(page_index, "", infos, p_w, p_h, ut.language_formatting(lang),
+                                        highres_img_url, author, publisher, contributor)
+    p_writer.writerow(page_entity)
     return success
 
-def work_with_page(page_item:dict, root_dir:str, writer:csv.DictWriter, info:list[str], journal_name:str, year:str, issue_month:str, issue_temp_fol:str, res_dir:str, index:int):
+def work_with_page(page_item:dict, root_dir:str, writer:csv.DictWriter, info:list[str], journal_name:str, issue_temp_fol:str, res_dir:str, p_writer:csv.DictWriter):
     page_index = page_item['contenu']
-    # if page_index == "NP": page_index = page_index+"_"+str(index)
     page_url = page_item['url']
     img_url = convert_url_to_img_url(page_url, root_dir)
 
-    # img_name = create_img_name(journal_name, year, issue_month) +"_"+ ut.format_string(page_index)+".jpeg"
     page_index = page_index + '_' + ci_alto.get_page_num(img_url)
     img_name =  ut.format_string(page_index)+".jpeg"
     img_path = os.path.join(issue_temp_fol, img_name)
-    # success = ut.save_img(img_url, img_path)
-   
-    # if success:
-    success = process_image(img_path, img_url, writer, info, page_index, res_dir, journal_name)
-        # print("processed image", img_name)
+
+    success = process_page_image(img_path, img_url, writer, info, page_index, res_dir, journal_name, p_writer)
     return success
 
 def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, year:str, issue_month:str, issue_num:str, issue_temp_fol:str)->bool:
@@ -194,15 +181,17 @@ def work_with_pages(url:str, root_dir:str, info:list[str], journal_name:str, yea
     issue_temp_fol = os.path.join(issue_temp_fol, issue_dir_name)
     ut.create_dir(issue_temp_fol)
 
-    res_dir, csvfile_path = create_result_dirs_and_files(issue_dir_name)
-    writer, file = ut.create_csv_writer(csvfile_path)
+    res_dir, csvfile_path, csvfile_pages_path = ut.create_result_dirs_and_files(issue_dir_name)
+    writer, file = ut.create_csv_writer(csvfile_path, ut.IMG_HEAD_CSV)
+    p_writer, p_file = ut.create_csv_writer(csvfile_pages_path, ut.PAGE_HEAD_CSV)
     infos = info + [issue_month, year]
     for i in range(len(pages)):
-    # for page in pages:
-        success = work_with_page(pages[i], root_dir, writer, infos, journal_name, year, issue_month, issue_temp_fol, res_dir, i)
+        success = work_with_page(pages[i], root_dir, writer, infos, journal_name, issue_temp_fol, res_dir, p_writer)
         if not success:
             file.close()
             os.remove(csvfile_path)
+            p_file.close()
+            os.remove(csvfile_pages_path)
             os.rmdir(os.path.join(res_dir, "big_original"))
             os.rmdir(res_dir)
             os.rmdir(issue_temp_fol)
@@ -273,12 +262,9 @@ def work_with_month(month:dict, root_dir:str, journal_name:str, year:str, temp_f
 
         for cr in content_row:
             if cr['active']:
+                issue_count_in_one_month += 1
                 if processed_items_counter >= issue_start: # ability to tell the program where to start
-                    issue_count_in_one_month += 1
                     success = work_with_issue(cr, root_dir, journal_name, year, issue_month, str(issue_count_in_one_month), temp_fol)
-                    if not success:
-                        os.rmdir(temp_fol)
-                        return False
                 processed_items_counter += 1
     return True
 
@@ -395,9 +381,3 @@ def utility(url:str, volume_start:int, month_start:int, issue_start:str)->None:
     ut.delete_json_files(out_dir)
     return
 
-
-# url = "https://gallica.bnf.fr/ark:/12148/cb34348232c/date"
-# url = "https://gallica.bnf.fr/ark:/12148/cb32857192h/date.r=revue+de+l%27art+ancien+et+moderne.langFR"
-# url = "https://gallica.bnf.fr/ark:/12148/cb34348232c/date"
-# url = "https://gallica.bnf.fr/ark:/12148/bpt6k7126357w/f1.planchecontact"
-# utility(url, 0, 0, 0)

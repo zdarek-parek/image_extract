@@ -214,20 +214,6 @@ def match_bboxes_to_illustrations(illustration:ET.Element, bboxes:list[ET.Elemen
 
     return bboxes_pos
 
-'''
-def find_page_width_height(alto_path:str)->list[int]:
-    tree = ET.parse(alto_path)
-    root = tree.getroot()
-
-    blocks = []
-    for child in root:
-        if child.tag.endswith(LAYOUT_FLAG):
-            for child2 in child:
-                if child2.tag.endswith(PAGE_FLAG):
-                    return get_element_width_height(child2)
-    return [0, 0]
-'''
-
 
 def find_page_width_height(alto_path:str)->list[int]:
     tree = ET.parse(alto_path)

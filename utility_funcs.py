@@ -6,12 +6,26 @@ import unidecode
 import csv
 import cv2
 
+
+
+IMG_HEAD_CSV = ['journal name', 'issue', 'volume', 'publication date',
+                'page number', 'page index', 'image number', 
+                'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
+                'width_page', 'height_page', 'language', 
+                'img address', 'author', 'publisher', 'contributor']
+
+PAGE_HEAD_CSV = ['journal_name', 'issue', 'volume', 'publication_date',
+                'page_number', 'page_index',
+                'page_width', 'page_height', 'language', 
+                'img_address', 'author', 'publisher', 'contributor']
+
 last_request_time = 0
 
 def check_time():
+    time_constraint = 3
     current_time = time.time()
-    if (current_time - last_request_time) < 10:
-        time.sleep(10 - (current_time - last_request_time))
+    if (current_time - last_request_time) < time_constraint:
+        time.sleep(time_constraint - (current_time - last_request_time))
 
 def create_dir(dir_name:str)->None:
     if not os.path.exists(dir_name):
@@ -20,17 +34,17 @@ def create_dir(dir_name:str)->None:
 
 def read_api_url_unsafe(api_url:str, file_name:str)->bool:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
-    check_time()
+    # check_time()
     time.sleep(1)
     response = requests.get(api_url, headers=headers)
-    global last_request_time
-    last_request_time = time.time()
+    # global last_request_time
+    # last_request_time = time.time()
     tries = 5
     while (not response.ok and tries > 0):
-        check_time()
+        # check_time()
         time.sleep(1)
         response = requests.get(api_url, headers=headers)
-        last_request_time = time.time()
+        # last_request_time = time.time()
         tries -= 1
 
     r = response.content
@@ -64,17 +78,17 @@ def load_json(name:str)->dict:
 
 def download_alto_file_unsafe(url:str, file_name:str)->bool:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
-    check_time()
+    # check_time()
     time.sleep(1)
     response = requests.get(url, headers=headers)
-    global last_request_time
-    last_request_time = time.time()
+    # global last_request_time
+    # last_request_time = time.time()
     tries = 5
     while (not response.ok and tries > 0):
-        check_time()
+        # check_time()
         time.sleep(1)
         response = requests.get(url, headers=headers)
-        last_request_time = time.time()
+        # last_request_time = time.time()
         tries -= 1
     
     r = response.content
@@ -92,7 +106,7 @@ def download_alto_file(url:str, file_name:str)->bool:
         response_ok = download_alto_file(url, file_name)
         return response_ok
 
-def save_img_unsafe(url:str, img_name:str):
+def save_img_unsafe(url:str, img_name:str)->bool:
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0"}
     check_time()
     time.sleep(1)
@@ -104,7 +118,7 @@ def save_img_unsafe(url:str, img_name:str):
             f.write(response.content)
     return response.ok
     
-def save_img(url:str, img_name:str):
+def save_img(url:str, img_name:str)->bool:
     try:
         response_ok = save_img_unsafe(url, img_name)
         return response_ok
@@ -149,17 +163,28 @@ def format_string(s:str):
     res_str = format_str[:-finish] if finish>0 else format_str
     return res_str
 
-def create_csv_writer(csvfile:str):
-    fieldnames = ['journal name', 'issue', 'volume', 'publication date',
-                    'page number', 'page index', 'image number', 
-                    'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
-                    'width_page', 'height_page', 'language', 
-                    'img address', 'author', 'publisher', 'contributor']
-    # csvfile = issue_dir_name+'_data.csv'
+def create_csv_writer(csvfile:str, head:list[str])->tuple:
     f = open(csvfile, 'w', encoding='UTF8', newline='')
-    writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter = ";")
+    writer = csv.DictWriter(f, fieldnames=head, delimiter = ";")
     writer.writeheader()
     return writer, f
+
+
+def create_result_dirs_and_files(issue_dir_name:str): # dir where extracted reproduction will be
+    result_root = "result"
+    result_dir = os.path.join(result_root, issue_dir_name)#extracted reproductions
+    create_dir(result_dir)
+
+    result_dir_big = os.path.join(result_dir, 'big_original')
+    create_dir(result_dir_big)
+
+    csvfile = issue_dir_name + '_data.csv'
+    csvfile_path = os.path.join(result_root, csvfile)
+
+    csvfile_pages = issue_dir_name + '_pages.csv'
+    csvfile_pages_path = os.path.join(result_root, csvfile_pages)
+    
+    return result_dir, csvfile_path, csvfile_pages_path
 
 def language_formatting(lang:str)->str:
     '''for the database'''
@@ -171,7 +196,7 @@ def language_formatting(lang:str)->str:
 def delete_diacritics(s:str)->str:
     return unidecode.unidecode(s)
 
-def create_entity(page_index, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang,
+def create_entity(page_index, page_number, number, caption, area_percentage, coords, metadata, im_prefix, p_w, p_h, lang,
                   img_addr, author, publisher, contributor):
     journal_name, publication_date, volume, issue_number = metadata
     caption = caption.replace(';', ' ')
@@ -179,7 +204,7 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "issue":issue_number,
             "volume":volume,
             "publication date":publication_date,
-            "page number": "",
+            "page number": page_number,
             "page index": page_index,
             "image number": number,
             "caption":caption,
@@ -193,6 +218,23 @@ def create_entity(page_index, number, caption, area_percentage, coords, metadata
             "height_page": p_h, 
             "language":lang,
             "img address":img_addr,
+            "author":author, 
+            "publisher":publisher,
+            "contributor":contributor}
+
+def create_page_entity(page_index, page_number, metadata, p_w, p_h, lang,
+                  img_addr, author, publisher, contributor):
+    journal_name, publication_date, volume, issue_number = metadata
+    return {"journal_name": journal_name,
+            "issue":issue_number,
+            "volume":volume,
+            "publication_date":publication_date,
+            "page_number": page_number,
+            "page_index": page_index,
+            "page_width":p_w, 
+            "page_height": p_h, 
+            "language":lang,
+            "img_address":img_addr,
             "author":author, 
             "publisher":publisher,
             "contributor":contributor}
