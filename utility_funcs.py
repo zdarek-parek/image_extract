@@ -58,14 +58,15 @@ def read_api_url(api_url:str, file_name:str)->bool:
         response_ok = read_api_url_unsafe(api_url, file_name)
         return response_ok
     except Exception as e:
-        print("Error occured. The error is ", e)
+        print("Error occurred. The error is ", e)
+        print("Let me try again...")
         time.sleep(60)
         response_ok = read_api_url_unsafe(api_url, file_name)
         return response_ok
 
 
 def delete_json_files(root_folder:str):
-    files_to_delete = ["journal.json", "year.json", "issue.json", "issue.xml", "pages.json", "page.json", "pre_issue.json"]
+    files_to_delete = ["journal.json", "year.json", "issue.json", "issue.xml", "pages.json", "page.json", "pre_issue.json", "volume.json"]
     for file in files_to_delete:
         if os.path.exists(os.path.join(root_folder, file)):
             os.remove(os.path.join(root_folder, file))
@@ -101,7 +102,8 @@ def download_alto_file(url:str, file_name:str)->bool:
         response_ok = download_alto_file_unsafe(url, file_name)
         return response_ok
     except Exception as e:
-        print("Error occured. The error is ", e)
+        print("Error occurred. The error is ", e)
+        print("Let me try again...")
         time.sleep(60)
         response_ok = download_alto_file(url, file_name)
         return response_ok
@@ -123,7 +125,8 @@ def save_img(url:str, img_name:str)->bool:
         response_ok = save_img_unsafe(url, img_name)
         return response_ok
     except Exception as e:
-        print("Error occured. The error is ", e)
+        print("Error occurred. The error is ", e)
+        print("Let me try again...")
         time.sleep(60)
         response_ok = save_img_unsafe(url, img_name)
         return response_ok
