@@ -8,11 +8,11 @@ import cv2
 
 
 
-IMG_HEAD_CSV = ['journal name', 'issue', 'volume', 'publication date',
-                'page number', 'page index', 'image number', 
-                'caption', 'area in percentage', 'x1', 'y1', 'x2', 'y2', 'image',
+IMG_HEAD_CSV = ['journal_name', 'issue', 'volume', 'publication_date',
+                'page_number', 'page_index', 'image_number', 
+                'caption', 'area_in_percentage', 'x1', 'y1', 'x2', 'y2', 'image',
                 'width_page', 'height_page', 'language', 
-                'img address', 'author', 'publisher', 'contributor']
+                'img_address', 'author', 'publisher', 'contributor']
 
 PAGE_HEAD_CSV = ['journal_name', 'issue', 'volume', 'publication_date',
                 'page_number', 'page_index',
@@ -64,9 +64,18 @@ def read_api_url(api_url:str, file_name:str)->bool:
         response_ok = read_api_url_unsafe(api_url, file_name)
         return response_ok
 
+def clean_if_empty(res_dir, csv_files):
+
+    if os.path.exists(res_dir):
+        if not os.listdir(res_dir):
+            os.removedirs(res_dir)
+            for csv_f in csv_files:
+                if os.path.exists(csv_f):
+                    os.remove(csv_f)
+    return
 
 def delete_json_files(root_folder:str):
-    files_to_delete = ["journal.json", "year.json", "issue.json", "issue.xml", "pages.json", "page.json", "pre_issue.json", "volume.json"]
+    files_to_delete = ["journal.json", "volume.json", "year.json", "issue.json", "journal.xml", "issue.xml", "pages.json", "page.json", "pre_issue.json", "volume.json", "ocr.json"]
     for file in files_to_delete:
         if os.path.exists(os.path.join(root_folder, file)):
             os.remove(os.path.join(root_folder, file))
@@ -166,6 +175,12 @@ def format_string(s:str):
     res_str = format_str[:-finish] if finish>0 else format_str
     return res_str
 
+def shorten_name(name:str)->str:
+    split_name = name.split(' ')
+    if len(split_name) > 3:
+        return ' '.join(split_name[:3])
+    return name
+
 def create_csv_writer(csvfile:str, head:list[str])->tuple:
     f = open(csvfile, 'w', encoding='UTF8', newline='')
     writer = csv.DictWriter(f, fieldnames=head, delimiter = ";")
@@ -203,15 +218,15 @@ def create_entity(page_index, page_number, number, caption, area_percentage, coo
                   img_addr, author, publisher, contributor):
     journal_name, publication_date, volume, issue_number = metadata
     caption = caption.replace(';', ' ')
-    return {"journal name": journal_name,
+    return {"journal_name": journal_name,
             "issue":issue_number,
             "volume":volume,
-            "publication date":publication_date,
-            "page number": page_number,
-            "page index": page_index,
-            "image number": number,
+            "publication_date":publication_date,
+            "page_number": page_number,
+            "page_index": page_index,
+            "image_number": number,
             "caption":caption,
-            "area in percentage":area_percentage,
+            "area_in_percentage":area_percentage,
             "x1":coords[0],
             "y1":coords[1],
             "x2":coords[2],
@@ -220,7 +235,7 @@ def create_entity(page_index, page_number, number, caption, area_percentage, coo
             "width_page":p_w, 
             "height_page": p_h, 
             "language":lang,
-            "img address":img_addr,
+            "img_address":img_addr,
             "author":author, 
             "publisher":publisher,
             "contributor":contributor}
@@ -241,5 +256,4 @@ def create_page_entity(page_index, page_number, metadata, p_w, p_h, lang,
             "author":author, 
             "publisher":publisher,
             "contributor":contributor}
-
 

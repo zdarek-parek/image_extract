@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import utility_funcs as ut
 import os
-import new_caption as nc
+# import new_caption as nc
 import alto_parser as ap
 
 
@@ -65,12 +65,13 @@ def process_page_alto(alto_path:str)->tuple:
     caps = []
     angles = []
     for illustration in illustrations:
-        if ap.is_big_enough(illustration, width, height):
-            text_blocks_dict = ap.match_bboxes_to_illustrations(illustration, text_blocks)
-            caption, angle = ap.find_caption(illustration, text_blocks_dict, width, height)
+        ill = ap.get_element_coordinates(illustration)
+        if ap.is_big_enough(ill, width, height):
+            text_blocks_dict = ap.match_bboxes_to_illustrations(ill, text_blocks)
+            caption, angle = ap.find_caption(ill, text_blocks_dict, width, height)
             caps.append(caption)
             angles.append(angle)
-            x, y, w, h = ap.get_element_coordinates(illustration)
+            x, y, w, h = ill
             imgs.append([x, y, x+w, y+h])
     imgs, caps, angles = ap.delete_inscribed_bboxes(imgs, caps, angles)
     return imgs, caps, angles, width, height

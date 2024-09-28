@@ -60,7 +60,7 @@ def format_publication_date(date:str)->str:
     else:
         split_date = [date]
 
-    if len(split_date[0]) == 4: # firts is a year
+    if len(split_date[0]) == 4: # first is a year
         split_date.reverse()
     
     pub_date = ""

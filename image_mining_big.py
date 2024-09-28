@@ -216,8 +216,8 @@ def process_image(source, lang, img_ind, size=0.93):
     #     x, y, w, h = found_ims[i][0], found_ims[i][1], found_ims[i][2]-found_ims[i][0], found_ims[i][3]-found_ims[i][1]
     #     extracted = source[y:y + h, x:x + w]
     #     cv2.imwrite(os.path.join(output_dir, "%s_%d.jpeg" % (img_ind, i)), extracted)
-    #     # cv2.imshow("res_fin", extracted)
-    #     # cv2.waitKey()
+        # cv2.imshow("res_fin", extracted)
+        # cv2.waitKey()
     return found_ims
 
 def preprocess_image(image, img_ind):
@@ -571,5 +571,7 @@ def util(file, lang):
     height = img.shape[0]
     width = img.shape[1]
     image_boxes = process_image(img, lang, img_ind, 0.945)#0.93, 0.95, 0.94, 0.945
-
+    # print("image_mining_big:", image_boxes)
     return image_boxes, height, width
+
+# util(r"C:\Users\dasha\Desktop\py_projects\temp\Blatter_der_Galerie\1931\Otto_Muellers_Graphik\2.jpeg", "deu")

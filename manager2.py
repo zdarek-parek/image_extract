@@ -5,6 +5,7 @@ import im_cap
 import img_bal as ib
 import im_link_cz as ilcz
 import im_link_fr as ilfr
+import im_link_deu as ildeu
 from unidecode import unidecode
 
 def work_with_pdf(pdf_address, metadata, language, input_path, output_path, dump_pdf):
@@ -60,12 +61,15 @@ def work_with_batches(folder_with_batches):
             ib.util_with_batch(temp_path_b, res_path, batch_path, language)
     return
 
-def work_with_link(link, lang, volume_start:int, month_start:int, issue_start:int):
+def work_with_link(link:str, lang, volume_start:int, month_start:int, issue_start:int):
     french_link_label = "https://gallica.bnf.fr"
+    german_link_label = "https://digi.ub.uni-heidelberg.de/diglit"
     if link.startswith(french_link_label): # french link
         ilfr.utility(link, volume_start, month_start, issue_start)
+    elif link.startswith(german_link_label):
+        ildeu.utility(link, volume_start, issue_start)
     else:
-        ilcz.utility(link, volume_start, issue_start) # czeck link
+        ilcz.utility(link, volume_start, issue_start) # czech link
     return
 
 def utility(language):

@@ -69,16 +69,18 @@ def process_page_alto(alto_path:str, ocr_page_dims:list[int], phys_page_dims:lis
     caps = []
     angles = []
     for illustration in illustrations:
-        if ap.is_big_enough(illustration, width, height):
-            text_blocks_dict = ap.match_bboxes_to_illustrations(illustration, text_blocks)
-            caption, angle = ap.find_caption(illustration, text_blocks_dict, width, height)
+        ill = ap.get_element_coordinates(illustration)
+        if ap.is_big_enough(ill, width, height):
+            text_blocks_dict = ap.match_bboxes_to_illustrations(ill, text_blocks)
+            caption, angle = ap.find_caption(ill, text_blocks_dict, width, height)
             caps.append(caption)
             angles.append(angle)
-            x, y, w, h = ap.get_element_coordinates(illustration)
+            x, y, w, h = ill
             ad_x, ad_y, ad_w, ad_h = adjust_img_bbox([x, y, w, h], ocr_page_dims, phys_page_dims)
             imgs.append([ad_x, ad_y, ad_x+ad_w, ad_y+ad_h])
     imgs, caps, angles = ap.delete_inscribed_bboxes(imgs, caps, angles)
-    return imgs, caps, angles, width, height
+    phys_w, phys_h = phys_page_dims
+    return imgs, caps, angles, phys_w, phys_h
 
 
 def convert_page_url_to_alto_url(page_url:str)->str:

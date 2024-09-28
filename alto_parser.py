@@ -119,7 +119,7 @@ def find_interesting_bboxes_in_alto(alto_file_path:str, bbox_flag:str)->list[ET.
 
 def find_illustrations(alto_file_path:str)->list[ET.Element]:
     ills = find_interesting_bboxes_in_alto(alto_file_path, ILLUSTRATION_FLAG)
-    ills_comment = find_ills_in_comment(alto_file_path)
+    ills_comment = []#find_ills_in_comment(alto_file_path)
     res_ills = []
     if len(ills_comment) == 0: return ills
     for ill in ills:
@@ -202,15 +202,16 @@ def is_possible_to_contain_caption_up_down(ill_coords:list[int], bbox:list[int])
     if x1 < x4 and x2 > x3: return True
     return False
 
-def match_bboxes_to_illustrations(illustration:ET.Element, bboxes:list[ET.Element])->dict:
+def match_bboxes_to_illustrations(ill_coords:list[int], bboxes:list[ET.Element])->dict:
     '''Returns dictionary, which contains text blocks around the image which are the most probable to contain caption. '''
-    ill_coords = get_element_coordinates(illustration)
+    # ill_coords = get_element_coordinates(illustration)
     bboxes_pos = {RIGHT_FLAG:[], LEFT_FLAG:[], TOP_FLAG:[], BOTTOM_FLAG:[]}
     for bbox in bboxes:
-        bb_coords = get_element_coordinates(bbox)
-        pos = get_pos(ill_coords, bb_coords)
-        if len(pos) > 0:
-            bboxes_pos[pos].append(bbox)
+        if len(list(bbox)) > 0: # german jornals have empty TextBlock bounding illustrations, they do not contain text
+            bb_coords = get_element_coordinates(bbox)
+            pos = get_pos(ill_coords, bb_coords)
+            if len(pos) > 0:
+                bboxes_pos[pos].append(bbox)
 
     return bboxes_pos
 
@@ -406,8 +407,8 @@ def work_with_left(ill_coords:list[int], text_blocks:list[ET.Element], width:int
                 return caption, distance, 0
     return "", -1, 0
 
-def find_caption(illustration:ET.Element, text_blocks:dict, width:int, height:int)->tuple:
-    ill_coords = get_element_coordinates(illustration)
+def find_caption(ill_coords:list[int], text_blocks:dict, width:int, height:int)->tuple:
+    # ill_coords = get_element_coordinates(illustration)
 
     caps_dists = []
     cap_b, distance_b, angle_b = work_with_bottom(ill_coords, text_blocks[BOTTOM_FLAG], width, height)
@@ -422,10 +423,11 @@ def find_caption(illustration:ET.Element, text_blocks:dict, width:int, height:in
     return caption, 0
 
 
-def is_big_enough(ill:ET.Element, width:int, height:int)->bool:
+def is_big_enough(ill:list[int], width:int, height:int)->bool:
     '''If width or height of illustration is less than 5% of the page width or height respectively,
     then it is not an illustration. It is either a graphical element or an error.'''
-    _, _, w, h = get_element_coordinates(ill)
+    # _, _, w, h = get_element_coordinates(ill)
+    _, _, w, h = ill
     if w < width*0.05 or h < height*0.05:
         return False
     return True
